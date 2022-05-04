@@ -51,7 +51,7 @@ public class WeilPlace {
             boolean longpooling = true;
             // 60 secs would the theorical maximum while working ok on all browsers and the nginx
             int poolingTimeout = 30000; 
-            String filestr = "C:\\www\\weilplace\\pixels.bmp";
+            String filestr = "D:\\git\\weilplace\\weilplace-site\\pixels.bmp";
             
             try{
             if(args.length > 0)
@@ -239,6 +239,7 @@ public class WeilPlace {
             response.setHeader("Accept-Ranges", "bytes");  
             response.setHeader("Content-Encoding", "identity");
             //response.setHeader("Access-Control-Allow-Origin", "http://localhost");
+            response.setHeader("Access-Control-Allow-Origin", "*");
             response.setHeader("Connection", "Keep-Alive");
             response.setHeader("Content-Type", "text/plain");
             byte[] responseBody;
@@ -556,8 +557,12 @@ public class WeilPlace {
                         pixelSet = false;
                         saveBitmap();
                         
-                        System.out.println("Changes:"+changes.substring(lastChanges, changes.length()));
-                        lastChanges = changes.length();
+                        int changeslength =changes.length();
+                        //if( (changeslength - lastChanges) < 32)
+                        //System.out.println("Changes:"+changes.substring(lastChanges, changes.length()));
+                        // 4 letter per pixel
+                        System.out.println(((changeslength - lastChanges)/4)+" Pixels placed");
+                        lastChanges = changeslength;
                     }
                 }
 
