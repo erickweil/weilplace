@@ -6,6 +6,9 @@ if (array_key_exists('HTTPS', $_SERVER) && $_SERVER['HTTPS'] == 'on') {
     exit();
 }
 
+// Start the session
+session_start();
+
 ?>
 <!DOCTYPE html>
 <html style="height:100%; width:100%; position: absolute">

@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -50,7 +51,10 @@ public class WeilPlace {
             int size = 128;
             boolean longpooling = true;
             // 60 secs would the theorical maximum while working ok on all browsers and the nginx
-            int poolingTimeout = 30000; 
+            int poolingTimeout = 30000;
+            
+            // segundos que um usuário deve esperar antes de colocar pixels
+            int placeDelay = 0;
             String filestr = "D:\\git\\weilplace\\weilplace-site\\pixels.bmp";
             
             try{
@@ -77,6 +81,9 @@ public class WeilPlace {
                             break;
                         case "-poolingtimeout":
                             poolingTimeout = Integer.parseInt(value);
+                            break;
+                        case "-placedelay":
+                            placeDelay = Integer.parseInt(value);
                             break;
                     }
                 }  
@@ -137,7 +144,7 @@ public class WeilPlace {
             final ThreadSafeDormitorio dormitorio = longpooling ? new ThreadSafeDormitorio(poolingTimeout,false) : null;
             
             // Save image on another thread...
-            final ImageSaver saver = new ImageSaver(bitmap,bmpFile);
+            final ImageSaver saver = new ImageSaver(bitmap,bmpFile.getParentFile(),"pixels",placeDelay);
             Thread saverThread = new Thread(saver);
             saverThread.start();
             
@@ -231,6 +238,13 @@ public class WeilPlace {
         public static final byte[] error_response = new byte[]{'E','R','R','O'};
         public HttpResponse processProtocol(HttpRequest requestData) throws UnsupportedEncodingException
         {
+            // Identificar cada usuário pela sessão do PHP, que é um cookie setado ao abrir a página.
+            String identifier = null;
+            if(requestData.cookies != null && requestData.cookies.containsKey("PHPSESSID"))
+            {
+                identifier = requestData.cookies.get("PHPSESSID");
+            }
+            
             HttpResponse response = new HttpResponse();
             response.closeConnection = false;
             response.setHeader("Cache-Control", "max-age=0, no-cache, no-store, must-revalidate");
@@ -238,8 +252,13 @@ public class WeilPlace {
             response.setHeader("Pragma", "no-cache");
             response.setHeader("Accept-Ranges", "bytes");  
             response.setHeader("Content-Encoding", "identity");
+            
+            // CORS
             //response.setHeader("Access-Control-Allow-Origin", "http://localhost");
-            response.setHeader("Access-Control-Allow-Origin", "*");
+            // https://stackoverflow.com/questions/24687313/what-exactly-does-the-access-control-allow-credentials-header-do#:~:text=The%20server%20must%20respond%20with,included%20on%20cross%2Dorigin%20requests.
+            //response.setHeader("Access-Control-Allow-Credentials","true");
+            
+            //response.setHeader("Access-Control-Allow-Origin", "*");
             response.setHeader("Connection", "Keep-Alive");
             response.setHeader("Content-Type", "text/plain");
             byte[] responseBody;
@@ -313,13 +332,20 @@ public class WeilPlace {
                     int color = Integer.parseInt(getparameters.get("c").get(0));
                     color = Math.max(0,Math.min(color,imageSaver.pallete_size-1));
                     
-                    imageSaver.setPixel(coord_x, coord_y, (byte)color);
+                    int delayToPlaceAgain = imageSaver.setPixel(coord_x, coord_y, (byte)color, identifier);
+                    if(delayToPlaceAgain >= 0)
+                    {
+                        if(dormitorio != null)
+                            dormitorio.acordarTodoMundo();
                     
-                    if(dormitorio != null)
-                        dormitorio.acordarTodoMundo();
-                    
-                    response.setHeader("Content-Type", "text/plain");
-                    responseBody = ok_response;
+                        response.setHeader("Content-Type", "application/json");
+                        responseBody = ("{\"status\":\"OK\",\"delay\":\""+delayToPlaceAgain+"\"}").getBytes(this.charset);
+                    }
+                    else
+                    {
+                        response.setHeader("Content-Type", "application/json");
+                        responseBody = ("{\"status\":\"ERRO\",\"delay\":\""+(-delayToPlaceAgain)+"\"}").getBytes(this.charset);
+                    }
                 break;
                 }
                 // read entire picture
@@ -428,7 +454,8 @@ public class WeilPlace {
             0xffffff  //11111
         };
         
-        protected File bmpFile;
+        protected File bmpFileDir;
+        protected String bmpFileName;
         protected Bitmap8Bit bitmap;
         private boolean pixelSet;
         public final int width;
@@ -436,17 +463,22 @@ public class WeilPlace {
         public StringBuilder changes;
         byte[] changesbuff;
         Base64.Encoder b64encoder;
+        public int placeDelay;
+        private final HashMap<String,Long> lastPlaced;
         
-        public ImageSaver(Bitmap8Bit bitmap, File bmpFile)
+        public ImageSaver(Bitmap8Bit bitmap, File bmpFileDir, String bmpFileName, int placeDelay)
         {
             this.bitmap = bitmap;
-            this.bmpFile = bmpFile;
+            this.bmpFileDir = bmpFileDir;
+            this.bmpFileName = bmpFileName;
             this.width = bitmap._width;
             this.height = bitmap._height;
             this.pixelSet = true;
             this.changes = new StringBuilder();
+            this.placeDelay = placeDelay;
             changesbuff = new byte[3];
             b64encoder = Base64.getEncoder();
+            this.lastPlaced = new HashMap<>();
         }
         
         
@@ -470,10 +502,25 @@ public class WeilPlace {
         X coord Y coord Color  
         20 bits 20 bits 8 bits
         */
-        public void setPixel(int x,int y,byte color)
+        public int setPixel(int x,int y,byte color,String identifier)
         {
             // SYNCHRONIZED TO PREVENT WRITING THE ARRAY WHILE IT IS BEING READ
             synchronized (bitmap.contents) {
+                
+                // if there is a delay to place tiles
+                if(placeDelay > 0)
+                {
+                    long timeLastPlaced = lastPlaced.getOrDefault(identifier, -1L);
+                    if(timeLastPlaced > 0)
+                    {
+                        long timeElapsed = (System.currentTimeMillis() - timeLastPlaced)/1000;
+                        if( timeElapsed < placeDelay)
+                        {
+                            return -((int)(placeDelay - timeElapsed) + 1);
+                        }
+                    }
+                }
+                
                 bitmap.setPixel8(x, y, (byte)color);
                 
                 // 95        6         20
@@ -493,7 +540,14 @@ public class WeilPlace {
                 );
                 changes.append(b64encoder.encodeToString(changesbuff));
                 
+                if(placeDelay > 0)
+                {
+                    lastPlaced.put(identifier, System.currentTimeMillis());
+                }
+                
                 pixelSet = true;
+                
+                return placeDelay;
             }
         }
         
@@ -517,9 +571,10 @@ public class WeilPlace {
             }
         }
             
-        public void saveBitmap()
+        public void saveBitmap(int n)
         {
             try {
+                File bmpFile = new File(bmpFileDir,bmpFileName+"_"+n+".bmp");
                 Files.write(bmpFile.toPath(), bitmap.contents);
                 System.out.println("Saved bitmap.");
             } catch (IOException ex) {
@@ -533,7 +588,7 @@ public class WeilPlace {
             synchronized (bitmap.contents) {
                 int changeslength = changes.length();
                 ret[0] = changeslength;
-                if(index <= -1 || index >= changeslength|| (changeslength - index) > 10000)
+                if(index <= -1 || index >= changeslength)
                 {
                     return null;
                 }
@@ -555,9 +610,11 @@ public class WeilPlace {
                     if(pixelSet)
                     {
                         pixelSet = false;
-                        saveBitmap();
                         
-                        int changeslength =changes.length();
+                        int changeslength = changes.length();
+                        
+                        saveBitmap(changeslength / 4);
+                        
                         //if( (changeslength - lastChanges) < 32)
                         //System.out.println("Changes:"+changes.substring(lastChanges, changes.length()));
                         // 4 letter per pixel
@@ -568,7 +625,7 @@ public class WeilPlace {
 
                 // check every 1s
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

@@ -1,6 +1,7 @@
-//var pixelsapi = "http://app.passapassa.com.br/pixelart/api/";
+var pixelsapi = "http://app.passapassa.com.br/pixelart/api/";
 //var pixelsapi = "http://localhost:8090/";
-var pixelsapi = "http://10.115.255.250:8090/";
+var pixelsapiEnabled = true;
+//var pixelsapi = "http://10.115.255.250:8090/";
 
 var palletehex = [
 	'6d001a',
@@ -305,8 +306,6 @@ class CanvasPicture {
 		
 		if(typeof(x) != "undefined" && typeof(y) != "undefined" && typeof(color) != "undefined")
 		{
-			coordinatestxt.innerHTML = "("+x+","+((this.imgh-1)-y)+")";
-			coordinates2txt.innerHTML = "("+x+","+((this.imgh-1)-y)+")";
 			var tclicka = {x:mapRange(x,[0,this.imgw],[pa.x,pb.x]),y:mapRange(y,[0,this.imgh],[pa.y,pb.y])};
 			var tclickb = {x:mapRange(x+1,[0,this.imgw],[pa.x,pb.x]),y:mapRange(y+1,[0,this.imgh],[pa.y,pb.y])};
 			var rgb = palletergb[color];
@@ -376,21 +375,41 @@ class Pixels {
 			
 			MyCanvas.redraw();
 		};
-		this.img.src = pixelsapi+"?req=picture";
+		
+		if(pixelsapiEnabled === true)
+		{
+			this.img.src = pixelsapi+"?req=picture&t=" + new Date().getTime(); // t para quebrar o cache do navegador desgracento
+		}
+		else
+		{
+			this.img.src = "http://app.passapassa.com.br/pixelart/pixels.bmp";
+		}
 	}
 	
 	set_pixel(color)
 	{
+		if(pixelsapiEnabled !== true) return;
+		
 		var x = this.canvasPicture.lastPixClick.x;
 		var y = (this.canvasPicture.imgh-1)-this.canvasPicture.lastPixClick.y;
 		const url = pixelsapi+"?req=set&x="+x+"&y="+y+"&c="+color;
 
-		fetch(url)
+		fetch(url,{credentials: 'include'})
 		.then(function(response) {
-			return response.text();
+			return response.json();
 		})
 		.then(function(data) {
-			console.log(data);
+			if(data.hasOwnProperty("status") && data.hasOwnProperty("delay"))
+			{
+				var delay = parseInt(data["delay"]);
+				timeToPlaceAgain = performance.now() + delay * 1000.0;
+				
+				if(delay > 0)
+				{
+					colorpicker.style.display = 'none';	
+					placenow.style.display = 'block';
+				}
+			}
 		})
 		.catch(function(error) {
 			console.log(error);
@@ -399,6 +418,8 @@ class Pixels {
 	
 	fetch_pixels(MyCanvas)
 	{
+		if(pixelsapiEnabled !== true) return;
+		
 		var tthis = this;
 		this.fetch_pixels_finished = false;
 		
@@ -409,7 +430,7 @@ class Pixels {
 			// https://stackoverflow.blog/2019/12/18/websockets-for-fun-and-profit/
 			const url = pixelsapi+"?req=changes&i="+this.fetch_pixels_lastchanges;
 
-			fetch(url)
+			fetch(url,{credentials: 'include'})
 			.then(function(response) {
 				return response.json();
 			})
@@ -496,6 +517,16 @@ const coordinates2txt = document.getElementById("coordinates2");
 const colorpicker = document.getElementById("colorpicker");
 const placenow = document.getElementById("placenow");
 
+var timeToPlaceAgain = performance.now();
+
+if(pixelsapiEnabled !== true)
+{
+	timeToPlaceAgain += 1000 * 60 * 60 * 24;
+	colorpicker.style.display = 'none';	
+	placenow.style.display = 'block';
+}
+
+
 for (var i = 0; i < colorbuttons.length; i++) {
 	var btn = colorbuttons[i];
 	btn.dataset.color=""+i;
@@ -536,11 +567,15 @@ addListenerMulti(cancelbutton, 'click touchend',  function(e){
 });
 
 addListenerMulti(placenow, 'click touchend',  function(e){
-	event.stopPropagation();
-	event.preventDefault();
+	
+	if(performance.now() >= timeToPlaceAgain)
+	{
+		event.stopPropagation();
+		event.preventDefault();
 		
 		placenow.style.display = 'none';	
 		colorpicker.style.display = 'block';
+	}
 });
 
 
@@ -562,7 +597,10 @@ document.addEventListener('keydown', function(e) {
 			offy++;
             break;
 		case 13: // enter
+		if(performance.now() >= timeToPlaceAgain)
+		{
 			MyPixels.set_pixel(okbutton.dataset.color);
+		}
 			break;
     }
 	

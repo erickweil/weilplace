@@ -955,6 +955,37 @@ function canvasInteraction()
 		
 		MyCanvas.redraw();
 	}
+	
+	var node = MyPixels.canvasPicture;
+	var pixelPos = node.lastPixClick;
+	var coordtxt = "("+pixelPos.x+","+((node.imgh-1)-pixelPos.y)+")";
+		
+	if(performance.now() < timeToPlaceAgain)
+	{
+		var timeWaitSecs = Math.floor((timeToPlaceAgain - performance.now())/1000) + 1;
+		var timeWaitMins = 0;
+		var timeWaittxt = " novamente em ";
+		if(timeWaitSecs >= 60)
+		{
+			timeWaitMins = Math.floor(timeWaitSecs/60);
+			timeWaitSecs = timeWaitSecs % 60;
+			
+			
+			timeWaittxt += timeWaitMins+":"+timeWaitSecs+"";
+		}
+		else
+		{
+			
+			timeWaittxt += timeWaitSecs+"s";
+		}
+		coordinatestxt.innerHTML = timeWaittxt;
+		coordinates2txt.innerHTML = timeWaittxt;		
+	}
+	else
+	{
+		coordinatestxt.innerHTML = coordtxt;
+		coordinates2txt.innerHTML = coordtxt;
+	}
 }
 
 var canvasInteractionInterval = setInterval(canvasInteraction, 20);
