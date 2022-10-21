@@ -254,11 +254,10 @@ public class WeilPlace {
             response.setHeader("Content-Encoding", "identity");
             
             // CORS
-            //response.setHeader("Access-Control-Allow-Origin", "http://localhost");
+            response.setHeader("Access-Control-Allow-Origin", "http://localhost");
             // https://stackoverflow.com/questions/24687313/what-exactly-does-the-access-control-allow-credentials-header-do#:~:text=The%20server%20must%20respond%20with,included%20on%20cross%2Dorigin%20requests.
-            //response.setHeader("Access-Control-Allow-Credentials","true");
+            response.setHeader("Access-Control-Allow-Credentials","true");
             
-            //response.setHeader("Access-Control-Allow-Origin", "*");
             response.setHeader("Connection", "Keep-Alive");
             response.setHeader("Content-Type", "text/plain");
             byte[] responseBody;
@@ -574,7 +573,8 @@ public class WeilPlace {
         public void saveBitmap(int n)
         {
             try {
-                File bmpFile = new File(bmpFileDir,bmpFileName+"_"+n+".bmp");
+                //File bmpFile = new File(bmpFileDir,bmpFileName+"_"+n+".bmp");
+                File bmpFile = new File(bmpFileDir,bmpFileName+".bmp");
                 Files.write(bmpFile.toPath(), bitmap.contents);
                 System.out.println("Saved bitmap.");
             } catch (IOException ex) {
@@ -623,7 +623,7 @@ public class WeilPlace {
                     }
                 }
 
-                // check every 1s
+                // check every 10s
                 try {
                     Thread.sleep(10000);
                 } catch (InterruptedException e) {
