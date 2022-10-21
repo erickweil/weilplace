@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package weilplace;
+package br.erickweil.weilplace;
 
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -10,20 +10,20 @@ import java.util.logging.Logger;
 
 
 /**
- * Classe mais sensível do projeto. trabalha com o envio das mensagens da
- * thread da interface gráfica para todas as thread's de conexão ativas,
+ * Classe mais sensÃ­vel do projeto. trabalha com o envio das mensagens da
+ * thread da interface grÃ¡fica para todas as thread's de conexÃ£o ativas,
  * problemas que devem ser observados nessa classe:
  * - Memory Leak
  * - Thread Syncronization
  * 
- * como é utilizado pelas threads:
+ * como Ã© utilizado pelas threads:
  * inicio:
- *    1. aguarda que uma nova mensagem chegue pelo método waitMessage()
- *    2. link é capturado pelo método getMessage()
+ *    1. aguarda que uma nova mensagem chegue pelo mÃ©todo waitMessage()
+ *    2. link Ã© capturado pelo mÃ©todo getMessage()
  * sempre:
- *    3. lê a mensagem pelo método GetData() do DataLink
- *    4. captura o próximo link pelo método next() do DataLink
- *       4.1 aguarda a mensagem pelo método waitMessage() caso o next() retornar nulo.
+ *    3. lÃª a mensagem pelo mÃ©todo GetData() do DataLink
+ *    4. captura o prÃ³ximo link pelo mÃ©todo next() do DataLink
+ *       4.1 aguarda a mensagem pelo mÃ©todo waitMessage() caso o next() retornar nulo.
  * @author Usuario
  * @param <T> 
  */
@@ -85,7 +85,7 @@ public class ThreadSafeHandler<T> {
 	}
 	
 	/**
-	 * Envia uma mensagem a todos que estão escutando este Handler
+	 * Envia uma mensagem a todos que estÃ£o escutando este Handler
 	 * @param data objeto a ser enviado
 	 * @throws InterruptedException
 	 */
@@ -123,7 +123,7 @@ public class ThreadSafeHandler<T> {
 		//System.out.println("setawake() waiting:"+waiting+" needToRead:"+needToRead);
 	}
 	/**
-	 * Aguarda até que a próxima mensagem esteja pronta para ser lida,
+	 * Aguarda atÃ© que a prÃ³xima mensagem esteja pronta para ser lida,
 	 * deve ser chamado dentro de um bloco synchronized(handler)
 	 */
 	public synchronized void waitMessage() {
@@ -139,7 +139,7 @@ public class ThreadSafeHandler<T> {
 		}
 	}
 	/**
-	 * lê a mensagem atual do handler
+	 * lÃª a mensagem atual do handler
      * Deve ser usado na primeira vez apenas, depois acessa o next() do DataLink
 	 * @return
 	 */

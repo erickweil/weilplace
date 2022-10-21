@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package weilplace;
+package br.erickweil.weilplace;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -120,7 +120,7 @@ public class NonBlockingServer {
         }
         else
         {
-            System.out.println("N√O LEU AT… O FIM");
+            System.out.println("N√ÉO LEU AT√â O FIM");
         }
         /*client.read(buffer);
 //        Parse data from buffer to String

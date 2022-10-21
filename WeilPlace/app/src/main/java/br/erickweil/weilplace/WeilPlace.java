@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
-package weilplace;
+package br.erickweil.weilplace;
 
 import br.erickweil.webserver.GetUriParameters;
 import br.erickweil.webserver.HttpRequest;
@@ -53,9 +53,9 @@ public class WeilPlace {
             // 60 secs would the theorical maximum while working ok on all browsers and the nginx
             int poolingTimeout = 30000;
             
-            // segundos que um usuário deve esperar antes de colocar pixels
+            // segundos que um usuï¿½rio deve esperar antes de colocar pixels
             int placeDelay = 0;
-            String filestr = "D:\\git\\weilplace\\weilplace-site\\pixels.bmp";
+            String filestr = "pixels.bmp";
             
             try{
             if(args.length > 0)
@@ -238,7 +238,7 @@ public class WeilPlace {
         public static final byte[] error_response = new byte[]{'E','R','R','O'};
         public HttpResponse processProtocol(HttpRequest requestData) throws UnsupportedEncodingException
         {
-            // Identificar cada usuário pela sessão do PHP, que é um cookie setado ao abrir a página.
+            // Identificar cada usuï¿½rio pela sessï¿½o do PHP, que ï¿½ um cookie setado ao abrir a pï¿½gina.
             String identifier = null;
             if(requestData.cookies != null && requestData.cookies.containsKey("PHPSESSID"))
             {
@@ -280,7 +280,7 @@ public class WeilPlace {
                 }
                 else
                 {
-                    System.out.println("Não contém os get parameters");
+                    System.out.println("Nï¿½o contï¿½m os get parameters");
                     responseBody = error_response;
                 }
             }
@@ -373,10 +373,10 @@ public class WeilPlace {
                     String resptxt = imageSaver.getChanges(retIndex);
                     
                     // Long-pooling
-                    // Só faz o long pooling se não tem mudanças e n é a primeira vez
+                    // Sï¿½ faz o long pooling se nï¿½o tem mudanï¿½as e n ï¿½ a primeira vez
                     if(dormitorio != null && resptxt == null && index != -1)
                     {
-                        dormitorio.dormir(); // Espera por um setPixel, ou então pelo timeout.
+                        dormitorio.dormir(); // Espera por um setPixel, ou entï¿½o pelo timeout.
                     
                         retIndex[0] = index;
                         resptxt = imageSaver.getChanges(retIndex); // pega novamente os 

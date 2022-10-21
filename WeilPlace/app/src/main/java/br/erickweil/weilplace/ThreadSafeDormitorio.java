@@ -2,21 +2,21 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package weilplace;
+package br.erickweil.weilplace;
 
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
-A ideia é que várias threads possam esperar por uma indicação de que podem continuar.
+A ideia Ã© que vÃ¡rias threads possam esperar por uma indicaÃ§Ã£o de que podem continuar.
 com timeout e tudo aqui organizadinho.
 */
 public class ThreadSafeDormitorio {
 	
     private int needToRead;
     //public long timeoutAcordar = 100; // Esperar quanto tempo acordarem?
-    public long timeoutDormir = 30000; // Dormir por até quanto tempo?
+    public long timeoutDormir = 30000; // Dormir por atÃ© quanto tempo?
     private int waiting;
     private final boolean LOG;
 
@@ -38,7 +38,7 @@ public class ThreadSafeDormitorio {
 	}
 	
 	/**
-	 * Acorda a todos que estão dormindo neste Handler
+	 * Acorda a todos que estÃ£o dormindo neste Handler
 	 
 	public void acordarTodoMundo()
 	{
@@ -53,7 +53,7 @@ public class ThreadSafeDormitorio {
                 long elapsed = System.currentTimeMillis() - start;
                 if(elapsed > timeoutAcordar)
                 {
-                    System.out.println("Não deu para acordar TODOS! sobraram "+needToRead+" dormindo");
+                    System.out.println("NÃ£o deu para acordar TODOS! sobraram "+needToRead+" dormindo");
                     return;
                 }
             }
@@ -73,7 +73,7 @@ public class ThreadSafeDormitorio {
 	}
         
 	/**
-	 * Aguarda até que a próxima mensagem esteja pronta para ser lida,
+	 * Aguarda atÃ© que a prÃ³xima mensagem esteja pronta para ser lida,
 	 * deve ser chamado dentro de um bloco synchronized(handler)
 	 */
 	public synchronized void dormir() {
@@ -118,7 +118,7 @@ public class ThreadSafeDormitorio {
 
                         //System.out.println("Thread "+k+" finalizou");
                     } catch (InterruptedException ex) {
-                        Logger.getLogger(ThreadSafeHandler.class.getName()).log(Level.SEVERE, null, ex);
+                        ex.printStackTrace();
                     }
                 }
             }).start();
