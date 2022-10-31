@@ -9,28 +9,17 @@ import br.erickweil.webserver.HttpRequest;
 import br.erickweil.webserver.HttpResponse;
 import br.erickweil.webserver.ProtocolFactory;
 import br.erickweil.webserver.ReaderWriter;
-import br.erickweil.webserver.ServerHttpProxy;
-import br.erickweil.webserver.ServerPage;
-import br.erickweil.webserver.ServerPageManager;
 import br.erickweil.webserver.ServerProtocol;
 import br.erickweil.webserver.WebServer;
-import java.util.Base64;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -71,7 +60,7 @@ public class WeilPlace {
                             porta = Integer.parseInt(value);
                             break;
                         case "-size":
-                            porta = Integer.parseInt(value);
+                            size = Integer.parseInt(value);
                             break;
                         case "-file":
                             filestr = value;
@@ -112,6 +101,10 @@ public class WeilPlace {
                     byte[] bmpImg = Files.readAllBytes(bmpFile.toPath());
                     if(bmpImg != null && bmpImg.length > 0)
                         bitmap = Bitmap8Bit.fromBytes(bmpImg);
+                }
+                else
+                {
+                    bmpFile.getAbsoluteFile().getParentFile().mkdirs();
                 }
             }
             catch(Exception e)
