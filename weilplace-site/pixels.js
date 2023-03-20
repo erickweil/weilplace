@@ -1,5 +1,6 @@
 //var pixelsapi = "http://app.passapassa.com.br/pixelart/api/";
-var pixelsapi = "http://localhost:8090/";
+//var pixelsapi = "http://localhost:8090/";
+//var pixelsapi = "http://localhost:31001/";
 var pixelsapiEnabled = true;
 //var pixelsapi = "http://10.115.255.250:8090/";
 

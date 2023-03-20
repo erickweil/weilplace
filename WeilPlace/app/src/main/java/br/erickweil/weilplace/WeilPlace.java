@@ -15,7 +15,10 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +48,8 @@ public class WeilPlace {
             // segundos que um usu�rio deve esperar antes de colocar pixels
             int placeDelay = 0;
             String filestr = "pixels.bmp";
+
+            boolean savehistory = true;
             
             try{
             if(args.length > 0)
@@ -73,6 +78,9 @@ public class WeilPlace {
                             break;
                         case "-placedelay":
                             placeDelay = Integer.parseInt(value);
+                            break;
+                        case "-savehistory":
+                            savehistory = "true".equalsIgnoreCase(value);
                             break;
                     }
                 }  
@@ -137,7 +145,7 @@ public class WeilPlace {
             final ThreadSafeDormitorio dormitorio = longpooling ? new ThreadSafeDormitorio(poolingTimeout,false) : null;
             
             // Save image on another thread...
-            final ImageSaver saver = new ImageSaver(bitmap,bmpFile.getParentFile(),"pixels",placeDelay);
+            final ImageSaver saver = new ImageSaver(bitmap,bmpFile.getParentFile(),"pixels",savehistory,placeDelay);
             Thread saverThread = new Thread(saver);
             saverThread.start();
             
@@ -247,7 +255,8 @@ public class WeilPlace {
             response.setHeader("Content-Encoding", "identity");
             
             // CORS
-            response.setHeader("Access-Control-Allow-Origin", "http://localhost");
+            //response.setHeader("Access-Control-Allow-Origin", "http://localhost");
+            response.setHeader("Access-Control-Allow-Origin", requestData.getHeader("origin"));
             // https://stackoverflow.com/questions/24687313/what-exactly-does-the-access-control-allow-credentials-header-do#:~:text=The%20server%20must%20respond%20with,included%20on%20cross%2Dorigin%20requests.
             response.setHeader("Access-Control-Allow-Credentials","true");
             
@@ -456,9 +465,10 @@ public class WeilPlace {
         byte[] changesbuff;
         Base64.Encoder b64encoder;
         public int placeDelay;
+        public boolean saveHistory;
         private final HashMap<String,Long> lastPlaced;
         
-        public ImageSaver(Bitmap8Bit bitmap, File bmpFileDir, String bmpFileName, int placeDelay)
+        public ImageSaver(Bitmap8Bit bitmap, File bmpFileDir, String bmpFileName,boolean saveHistory, int placeDelay)
         {
             this.bitmap = bitmap;
             this.bmpFileDir = bmpFileDir;
@@ -467,6 +477,7 @@ public class WeilPlace {
             this.height = bitmap._height;
             this.pixelSet = true;
             this.changes = new StringBuilder();
+            this.saveHistory = saveHistory;
             this.placeDelay = placeDelay;
             changesbuff = new byte[3];
             b64encoder = Base64.getEncoder();
@@ -566,9 +577,23 @@ public class WeilPlace {
         public void saveBitmap(int n)
         {
             try {
-                //File bmpFile = new File(bmpFileDir,bmpFileName+"_"+n+".bmp");
                 File bmpFile = new File(bmpFileDir,bmpFileName+".bmp");
                 Files.write(bmpFile.toPath(), bitmap.contents);
+
+                if(saveHistory)
+                {
+                    LocalDateTime now = LocalDateTime.now();
+                    int year = now.getYear();
+                    int month = now.getMonthValue();
+                    int day = now.getDayOfMonth();
+                    int hour = now.getHour();
+                    int minute = now.getMinute();
+                    int second = now.getSecond();
+
+                    File bmpFile2 = new File(bmpFileDir,bmpFileName+"_"+year+"-"+month+"-"+day+" "+hour+"."+minute+"."+second+".bmp");
+                    Files.write(bmpFile2.toPath(), bitmap.contents);
+                }
+
                 System.out.println("Saved bitmap.");
             } catch (IOException ex) {
                 ex.printStackTrace();

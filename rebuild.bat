@@ -9,6 +9,7 @@ docker rmi erickweil/weilplace-api:latest
 docker build -t erickweil/weilplace-api WeilPlace
 docker build -t erickweil/weilplace-site weilplace-site
 
+
+echo docker run -v /c/git/weilplace/weilplace-site:/var/www/html -d -p 80:80 --name weilplace-site erickweil/weilplace-site
 docker run -d -p 80:80 --name weilplace-site erickweil/weilplace-site
-REM docker run -v /c/git/weilplace/img:/opt/app/img -d -p 8090:8090 --name weilplace-api erickweil/weilplace-api
 docker run --mount source=weilplace-volume,target=/opt/app/img -d -p 8090:8090 --name weilplace-api erickweil/weilplace-api

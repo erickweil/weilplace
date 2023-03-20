@@ -12,4 +12,4 @@ COPY ${DEPENDENCY} libs
 
 COPY ${JAR_FILE} app.jar
 
-CMD [ "java", "-cp", "app.jar:libs/*", "br.erickweil.weilplace.WeilPlace","-size","128","-port","8090","-file","/opt/app/img/pixels.bmp"]
+ENTRYPOINT [ "java", "-cp", "app.jar:libs/*", "br.erickweil.weilplace.WeilPlace","-file","/opt/app/img/pixels.bmp"]

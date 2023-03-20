@@ -184,7 +184,17 @@ session_start();
 </div>
 
 <script src="trash.js"></script>
-<!--<script src="logic.js"></script>-->
+<script>
+	<?php 
+	$api = getenv('APISERVER');
+	if(!$api)
+	{
+		$api = "http://localhost:8090/";
+	}
+	
+	?>
+	var pixelsapi = "<?php echo($api); ?>";
+</script>
 <script src="pixels.js"></script>
 <script src="canvas.js"></script>
 </body>
