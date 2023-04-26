@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "devStart": "nodemon server.js"
+    "devStart": "nodemon server.js",
+    "lint": "npx eslint ./"
   },
   "author": "Erick Leonardo Weil",
   "license": "ISC",
@@ -17,6 +18,8 @@
     "sharp": "^0.32.0"
   },
   "devDependencies": {
+    "eslint-plugin-import": "^2.27.5",
+    "eslint": "^8.39.0",
     "nodemon": "^2.0.22"
   },
   "type": "module"
