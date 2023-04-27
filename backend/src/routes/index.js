@@ -3,10 +3,10 @@ import pixels from "./pixelsRoutes.js";
 
 const routes = (app) => {
 
-    app.use(
-      teste,
-      pixels
-    )
-}
+	app.use(
+		teste,
+		pixels
+	);
+};
 
-export default routes
+export default routes;

@@ -1,21 +1,20 @@
 import express from "express";
 import routes from "./routes/index.js";
-import * as dotenv from 'dotenv'; // necessário para leitura do arquivo de variáveis
-import cors from 'cors';
+import * as dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
+import cors from "cors";
 import PixelSaver from "./pixels/pixelSaver.js";
-import PixelChanges from "./pixels/pixelChanges.js";
 
 dotenv.config();
 
-const pixelChanges = new PixelChanges();
-const pixelSaver = new PixelSaver(pixelChanges,process.env.DELAY_CRON_SAVE || 10);
-await pixelSaver.loadImage(process.env.PATH_PIXELS_IMG || "./pixels/pixels.png");
+PixelSaver.init(
+    process.env.DELAY_CRON_SAVE || 10,
+    process.env.PATH_PIXELS_IMG || "./public/pixels.png"
+);
 
 const app = express();
 
-app.locals.pixelChanges = pixelChanges;
-app.locals.size = pixelSaver.getSize();
-
+// Para servir os arquivos publicos
+app.use(express.static('public'));
 
 // Habilita o CORS para todas as origens
 app.use(cors());
