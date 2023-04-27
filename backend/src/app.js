@@ -1,27 +1,61 @@
 import express from "express";
-import routes from "./routes/index.js";
 import * as dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
 import cors from "cors";
-import PixelSaver from "./pixels/pixelSaver.js";
+import session from "express-session";
+
+import routes from "./routes/index.js";
+
+import { LOG_ROUTES, SESSION_SECRET, initOptions } from "./config/options.js";
+import { SessionManager } from "./middleware/sessionManager.js";
 
 dotenv.config();
 
-PixelSaver.init(
-    process.env.DELAY_CRON_SAVE || 10,
-    process.env.PATH_PIXELS_IMG || "./public/pixels.png"
-);
+initOptions();
 
 const app = express();
 
 // Para servir os arquivos publicos
-app.use(express.static('public'));
+//app.use(express.static("public")); -- Não isso está nas rotas
 
 // Habilita o CORS para todas as origens
-app.use(cors());
+app.use(cors({
+	exposedHeaders: [
+		// Utilizado pela rota /picture, para informar offset de mudanças do último save da imagem
+		"X-Changes-Offset"
+	]
+}));
 
 // habilitando o uso de json pelo express
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Depois tem que fazer a sessão salvar no redis
+app.use(session({
+	secret: SESSION_SECRET,
+	resave: true,
+	saveUninitialized: true,
+	cookie: {
+		sameSite: "strict",
+		maxAge: 24 * 60 * 60 * 1000
+	}
+}));
+
+app.use(SessionManager.initSession);
+
+if(LOG_ROUTES) {
+	app.use((req,res,next) => {
+		const timestamp = new Date().toISOString();
+
+		const username = req.session.username;
+
+		let ip = req.headers["x-forwarded-for"] ||
+		req.socket.remoteAddress ||
+		null;
+   
+		console.log(timestamp+" "+ip+" "+username+" "+req.protocol + "://" + req.get("host") + req.originalUrl);
+		next();
+	});
+}
 
 // Passando para o arquivo de rotas o app, que envia junto uma instância do express
 routes(app);

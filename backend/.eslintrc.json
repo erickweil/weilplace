@@ -14,7 +14,7 @@
         "sourceType": "module"
     },
     "rules": {
-        "linebreak-style": ["error","unix"],
+        "indent": ["error","tab"],
         "quotes": ["error","double"],
         "semi": ["error","always"],
         "no-unused-vars": "off",

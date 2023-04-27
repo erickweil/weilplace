@@ -1,8 +1,7 @@
 import express from "express";
 import path from "path";
-import pallete from "../config/pallete.js";
 import PixelChanges from "../pixels/pixelChanges.js";
-import PixelSaver from "../pixels/pixelSaver.js";
+import { API_SHARED_SECRET, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PALLETE, PATH_PICTURE, PLACE_DELAY } from "../config/options.js";
 
 const router = express.Router();
 
@@ -15,43 +14,83 @@ router.get("/set", (req,res) => {
 	if(!req.query.x || !req.query.y || !req.query.c) 
 		return res.status(400).json({ message: "É necessário o parâmetro get x e y para posição e c para cor" });
 
-	const size = PixelSaver.getSize();
+	const coord_x = parseIntBounded(req.query.x,0,IMAGE_WIDTH-1);
+	const coord_y = parseIntBounded(req.query.y,0,IMAGE_HEIGHT-1);
 
-	const coord_x = parseIntBounded(req.query.x,0,size.width-1);
-	const coord_y = parseIntBounded(req.query.y,0,size.height-1);
+	const color = parseIntBounded(req.query.c,0,PALLETE.length-1);
 
-	const color = parseIntBounded(req.query.c,0,pallete.length-1);
+	// Impedir que coloque pixels sem esperar um tempo
+	if(PLACE_DELAY > 0)
+	{
+		let timeLastPlaced = req.session.lastPlaced || -1;
+
+		if(timeLastPlaced > 0 )
+		{
+			let timeElapsed = (Date.now() -  timeLastPlaced);
+
+			// Caso não esperou o suficiente responde com quanto tempo falta em segundos
+			if(timeElapsed < PLACE_DELAY) {
+				return res.status(200).json({ message: "DELAY", contents: {delay: -Math.ceil((PLACE_DELAY - timeElapsed)/1000)} });
+			}
+		}
+
+		// registra o tempo atual como última vez que colocou pixels
+		req.session.lastPlaced = Date.now();
+	}
 
 	PixelChanges.setPixel(coord_x,coord_y,color);
 
-	res.status(200).json({ message: "OK", contents: {delay: 0} });
+	return res.status(200).json({ message: "OK", contents: {delay: Math.ceil(PLACE_DELAY/1000)} });
 });
-
-/*router.get("/picture", async (req,res) => {
-	res.status(200).sendFile("./pixels/pixels.png",{root: path.resolve() });
-	// https://stackoverflow.com/questions/30212813/express-return-binary-data-from-webservice
-
-    //const buffer = await PixelSaver.getPicture();
-    //res.writeHead(200, {
-        //'Content-Type': "image/png",        
-        //'Accept-Range': "none",
-        //'Cache-Control': 'no-cache, no-store, must-revalidate',
-        //'Content-Length': buffer.length
-    //});
-    //res.end(buffer);
-});*/
 
 router.get("/changes", (req,res) => {
 	const index = req.query.i ? parseInt(req.query.i) : -1;
 
 	const resp = PixelChanges.getChanges(index);
     
-	res.status(200).json({ message: "OK", contents: resp });
+	return res.status(200).json({ message: "OK", contents: resp });
 });
 
-/*router.get("/pallete", (req,res) => {
-	res.status(200).sendFile("./config/pallete.json",{root: path.resolve() });
-});*/
+router.post("/setsavedindex", (req,res) => {
+	if(!req.body.i || !req.body.secret) 
+		return res.sendStatus(404);
+
+	const index = parseInt(req.body.i);
+	const secret = req.body.secret;
+
+	if(secret !== API_SHARED_SECRET) 
+		return res.sendStatus(404);
+
+	PixelChanges.setSavedIndex(index);
+    
+	return res.status(200).json({ message: "OK" });
+});
+
+router.get("/picture", async (req,res) => {
+	
+	const resp = PixelChanges.getChanges(-1);
+	return res.status(200)
+		.sendFile(PATH_PICTURE,{
+			root: path.resolve(),
+			headers: {
+				"X-Changes-Offset": resp.i
+			}
+		});
+
+	// https://stackoverflow.com/questions/30212813/express-return-binary-data-from-webservice
+	//const buffer = await PixelSaver.getPicture();
+	//res.writeHead(200, {
+	//'Content-Type': "image/png",        
+	//'Accept-Range': "none",
+	//'Cache-Control': 'no-cache, no-store, must-revalidate',
+	//'Content-Length': buffer.length
+	//});
+	//res.end(buffer);
+});
+
+router.get("/pallete", (req,res) => {
+	return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
+});
 
 
 export default router;

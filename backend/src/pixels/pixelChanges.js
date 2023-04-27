@@ -16,7 +16,6 @@ class PixelChanges {
     setPixel(1048575,1048575,255);
     */
 	static setPixel(x,y,c) {
-		//setSinglePixel(x,y,pallete[c]);
 		// 2.5 byte x
 		// 2.5 byte y
 		// 1 byte color
