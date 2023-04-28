@@ -2,7 +2,9 @@ FROM node:alpine
 
 WORKDIR /node-app
 
-ENV NODE_ENV=production
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
 ENV LOG_ROUTES="false"
 ENV PORT=3001
 ENV API_URL="http://localhost:3001"

@@ -5,12 +5,15 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "devStart": "nodemon server.js",
-    "devSaver": "nodemon service_pixelsaver.js",
+    "devStart": "nodemon -L server.js",
+    "devSaver": "nodemon -L service_pixelsaver.js",
     "start": "node server.js",
     "saver": "node service_pixelsaver.js",
     "randomPlace": "node ./src/seed/botPlacer.js",
     "lint": "npx eslint ./"
+  },
+  "nodemonConfig": {
+    "ignore": ["public/pixels/picture.png"]
   },
   "author": "Erick Leonardo Weil",
   "license": "ISC",
@@ -21,12 +24,12 @@
     "express-session": "^1.17.3",
     "fetch-cookie": "^2.1.0",
     "node-cron": "^3.0.2",
-    "sharp": "^0.32.0"
+    "sharp": "^0.32.0",
+    "nodemon": "^2.0.22"
   },
   "devDependencies": {
     "eslint": "^8.39.0",
-    "eslint-plugin-import": "^2.27.5",
-    "nodemon": "^2.0.22"
+    "eslint-plugin-import": "^2.27.5"
   },
   "type": "module"
 }

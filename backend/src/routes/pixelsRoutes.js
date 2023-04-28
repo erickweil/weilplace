@@ -60,6 +60,7 @@ router.get("/picture", async (req,res) => {
 			headers: {
 				"X-Changes-Offset": resp.i
 			}
+			// colocar body?
 		});
 
 	// https://stackoverflow.com/questions/30212813/express-return-binary-data-from-webservice

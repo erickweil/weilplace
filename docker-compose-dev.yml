@@ -1,0 +1,64 @@
+# Para rodar o projeto sem construir a imagem, só mapeando direto mesmo
+version: "3.9"
+services:
+  weilplace-server:
+    build: 
+      context: ./backend
+      args:
+        NODE_ENV: "development"
+    container_name: weilplace-server
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/node-app/:rw
+      - weilplace-volume-backendmodules:/node-app/node_modules:rw
+      #- weilplace-volume-pixels:/node-app/public/pixels:ro
+    environment:
+      PORT: "3001"
+      PATH_PICTURE: "./public/pixels/picture.png"
+      LOG_ROUTES: "false"
+    entrypoint: "npm run devStart"
+    networks:
+      - weilplace
+  weilplace-pixelsaver:
+    build: 
+      context: ./backend
+      args:
+        NODE_ENV: "development"
+    container_name: weilplace-pixelsaver
+    volumes:
+      - ./backend:/node-app/:rw
+      - weilplace-volume-backendmodules:/node-app/node_modules:rw
+      #- weilplace-volume-pixels:/node-app/public/pixels:rw
+    environment:
+      API_URL: "http://weilplace-server:3001"
+      PATH_PICTURE: "./public/pixels/picture.png"
+    entrypoint: "npm run devSaver"
+    networks:
+      - weilplace
+  weilplace-frontend:
+    build: 
+      context: ./frontend
+      args:
+        NODE_ENV: "development"
+    container_name: weilplace-frontend
+    volumes:
+      - ./frontend:/node-app/:rw
+      - weilplace-volume-frontendmodules:/node-app/node_modules:rw
+    ports:
+      - "3000:3000"
+    environment:
+      API_URL: "http://weilplace-server:3001"
+      PORT: "3000"
+    entrypoint: "npm run dev"
+    networks:
+      - weilplace
+
+volumes:
+  weilplace-volume-pixels:
+  weilplace-volume-backendmodules:
+  weilplace-volume-frontendmodules:
+
+networks:
+  weilplace:
+    driver: bridge
