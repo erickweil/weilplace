@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
-import PixelChanges from "../pixels/pixelChanges.js";
-import { API_SHARED_SECRET, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PALLETE, PATH_PICTURE, PLACE_DELAY } from "../config/options.js";
+import PixelChanges from "../controller/pixelChanges.js";
+import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PALLETE, PATH_PICTURE, PLACE_DELAY } from "../config/options.js";
 
 const router = express.Router();
 
@@ -10,14 +10,14 @@ function parseIntBounded(str,min,max) {
 	return Math.max(min,Math.min(parsed,max));
 }
 
-router.get("/set", (req,res) => {
-	if(!req.query.x || !req.query.y || !req.query.c) 
-		return res.status(400).json({ message: "É necessário o parâmetro get x e y para posição e c para cor" });
+router.post("/pixel", (req,res) => {
+	if(!req.body.x || !req.body.y || !req.body.c) 
+		return res.status(400).json({ message: "É necessário x e y para posição e c para cor" });
 
-	const coord_x = parseIntBounded(req.query.x,0,IMAGE_WIDTH-1);
-	const coord_y = parseIntBounded(req.query.y,0,IMAGE_HEIGHT-1);
+	const coord_x = parseIntBounded(req.body.x,0,IMAGE_WIDTH-1);
+	const coord_y = parseIntBounded(req.body.y,0,IMAGE_HEIGHT-1);
 
-	const color = parseIntBounded(req.query.c,0,PALLETE.length-1);
+	const color = parseIntBounded(req.body.c,0,PALLETE.length-1);
 
 	// Impedir que coloque pixels sem esperar um tempo
 	if(PLACE_DELAY > 0)
@@ -49,21 +49,6 @@ router.get("/changes", (req,res) => {
 	const resp = PixelChanges.getChanges(index);
     
 	return res.status(200).json({ message: "OK", contents: resp });
-});
-
-router.post("/setsavedindex", (req,res) => {
-	if(!req.body.i || !req.body.secret) 
-		return res.sendStatus(404);
-
-	const index = parseInt(req.body.i);
-	const secret = req.body.secret;
-
-	if(secret !== API_SHARED_SECRET) 
-		return res.sendStatus(404);
-
-	PixelChanges.setSavedIndex(index);
-    
-	return res.status(200).json({ message: "OK" });
 });
 
 router.get("/picture", async (req,res) => {

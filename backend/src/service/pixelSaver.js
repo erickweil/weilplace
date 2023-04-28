@@ -1,7 +1,7 @@
 // a cada 10 segundos salva a imagem em disco, caso tenha ocorrido modificações na imagem
 import cron from "node-cron";
 
-import { convertBytesToBase64, convertTwoInt40bits, convertInt8bits, readTwoInt40bits, convertBase64ToBuffer } from "../pixels/bitPacker.js";
+import { convertBytesToBase64, convertTwoInt40bits, convertInt8bits, readTwoInt40bits, convertBase64ToBuffer } from "../util/bitPacker.js";
 import sharp from "sharp";
 import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PICTURE } from "../config/options.js";
 

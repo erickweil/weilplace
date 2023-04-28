@@ -5,7 +5,7 @@ import session from "express-session";
 
 import routes from "./routes/index.js";
 
-import { LOG_ROUTES, SESSION_SECRET, initOptions } from "./config/options.js";
+import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions } from "./config/options.js";
 import { SessionManager } from "./middleware/sessionManager.js";
 
 dotenv.config();
@@ -36,7 +36,7 @@ app.use(session({
 	saveUninitialized: true,
 	cookie: {
 		sameSite: "strict",
-		maxAge: 24 * 60 * 60 * 1000
+		maxAge: SESSION_MAX_AGE
 	}
 }));
 

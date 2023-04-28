@@ -10,7 +10,7 @@ services:
     environment:
       PORT: "3001"
       PATH_PICTURE: "./public/pixels/picture.png"
-      LOG_ROUTES: "true"
+      LOG_ROUTES: "false"
     networks:
       - weilplace
   weilplace-pixelsaver:

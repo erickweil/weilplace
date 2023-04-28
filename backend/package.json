@@ -9,6 +9,7 @@
     "devSaver": "nodemon service_pixelsaver.js",
     "start": "node server.js",
     "saver": "node service_pixelsaver.js",
+    "randomPlace": "node ./src/seed/botPlacer.js",
     "lint": "npx eslint ./"
   },
   "author": "Erick Leonardo Weil",
