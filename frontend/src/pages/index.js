@@ -4,27 +4,13 @@ import { Inter } from 'next/font/google'
 import styles from '@/styles/Pixels.module.css'
 import NonSSRWrapper from '@/components/no-ssr-wrapper'
 import { useState, useEffect } from 'react'
-import ZoomableCanvas from '@/components/Canvas/ZoomableCanvas'
-import { mesclarEstado } from '@/components/Canvas/CanvasControler'
+import PixelsView from '@/components/PixelsView/PixelsView'
+import { getApiURL } from '@/config/api'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
   console.log("Is SSR? -->", typeof window === "undefined");
-
-
-  const route_picture = "/picture";
-  const route_pallete = "/pallete";
-
-  const getApiURL = (route) => {
-    const clientside_api_url = "http://localhost:3001";
-    const serverside_api_url = "http://weilplace-server:3001";
-    if(typeof window === "undefined") {
-      return serverside_api_url+route;
-    } else {
-      return clientside_api_url+route;
-    }
-  }
 
   // https://nextjs.org/docs/basic-features/data-fetching/client-side
   const [data, setData] = useState({})
@@ -57,7 +43,7 @@ export default function Home() {
   const doFetchPallete = () => {
     console.log("Executou getPallete Is SSR? -->", typeof window === "undefined");
   
-    fetch(getApiURL(route_pallete))
+    fetch(getApiURL("/pallete"))
     .then((res) => res.json())
     .then((json) => {
       if(!json || !json.pallete) {
@@ -71,7 +57,7 @@ export default function Home() {
   const doFetchPicture = () => {
     console.log("Executou getPicture Is SSR? -->", typeof window === "undefined");
   
-    fetch(getApiURL(route_picture))
+    fetch(getApiURL("/picture"))
     .then((res) => Promise.all([res,res.blob()]))
     .then(([res,blob]) => {
       if(!blob) {
@@ -92,92 +78,6 @@ export default function Home() {
     doFetchPicture();
   }, [])
 
-  const imagemCarregou = (estado,myImg,url) => {
-    let imgW = myImg.naturalWidth;
-    let imgH = myImg.naturalHeight;
-
-    const W = estado.width;
-    const H = estado.height;
-
-    //if (imgW > W)
-    //if (imgH > H)
-    let scaleX = W/imgW;
-    let scaleY = H/imgH;
-
-    let scale = scaleY;
-    if(scaleX < scaleY)
-        scale = scaleX;
-    
-    if(!scale)
-    scale = 1;
-
-    //imgH = imgH*scale;
-    //imgW = imgW*scale; 
-    
-    mesclarEstado(estado,{
-        imagemFundo: myImg,
-        imagemFundoUrl: url,
-        imagemFundoPos: {
-            x:0,
-            y:0
-        },
-        imagemFundoSize: {
-            x:imgW,
-            y:imgH
-        },
-        scale:scale,
-        span:{
-            x:-((W/2 - (imgW/2 * scale))/scale ),
-            y:0,
-        }
-    });
-  };
-
-
-  const carregarImagem = (estado) => {
-    const pictureResponse = getData("picture",false)
-    const myImg = new Image();
-    myImg.onload = () => {
-        imagemCarregou(estado,myImg,pictureResponse.src);
-    };
-    myImg.src = pictureResponse.src;
-  };
-
-  // Não é o jeito certo? idaí?
-  const myGetInitialState = (estado) => {
-      mesclarEstado(estado,{
-          mouse:{pageX:0,pageY:0,x:0,y:0,left:false,middle:false,right:false},
-          span:{x:0,y:0},
-          spanning:false,
-          scale:1.0,
-          spanningStart:{x:0,y:0},
-          spanned:false,
-          spanEnabled:true,
-          zoomEnabled:true,
-          imagemFundo: false,
-          imagemFundoPos: {x:0,y:0},
-          imagemFundoScale: 1.0,
-          imagemFundoUrl: false,
-      });
-
-      carregarImagem(estado);
-  };
-
-  // Função que desenha tudo
-  const mydraw = (ctx,estado) => {
-      const w = estado.width;
-      const h = estado.height;
-
-      if(estado.imagemFundo)
-      {
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(estado.imagemFundo,
-        estado.imagemFundoPos.x,estado.imagemFundoPos.y,
-        estado.imagemFundoSize.x,estado.imagemFundoSize.y);
-      }
-  };
-
-
   return (
     <>
       <Head>
@@ -192,27 +92,9 @@ export default function Home() {
 
       {
         (() => {
-          const pictureResponse = getData("picture",false)
-          if(!pictureResponse){
-            return (<p>Carregando...</p>)
-          } else {
-            //return (<canvas className={`${styles.canvas}`}></canvas>)
-            return (
-              <ZoomableCanvas
-              getInitialState={myGetInitialState}
-              draw={mydraw}
-              options={{
-                spanButton:"left", // left | middle | right | any
-                maxZoomScale:256.0, // 1 pixel == 16 pixels   (Tela Full HD veria 120x67 pixels da imagem )
-                minZoomScale:0.0625, // 1 pixel == 0.05 pixels (Tela Full HD veria 30.720x17.280 pixels de largura 'quatro imagens 8K')
-                DEBUG: true,
-                spanSpeed: 15
-              }}
-              events={{}}
-              />
-            );
-      
-          }
+          const pictureResponse = getData("picture",false);
+          if(!pictureResponse) return (<p>Carregando...</p>);
+          else return ( <PixelsView imagemUrl={pictureResponse.src} imagemOffset={pictureResponse.offset} /> );
         })()
       }
       
