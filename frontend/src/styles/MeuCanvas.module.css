@@ -1,0 +1,9 @@
+#root{
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+
+#canvasInAPerfectWorld{
+    flex: 1;
+}
