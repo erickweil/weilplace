@@ -1,11 +1,11 @@
 // a cada 10 segundos salva a imagem em disco, caso tenha ocorrido modificações na imagem
 import cron from "node-cron";
 
-import { convertBytesToBase64, convertTwoInt40bits, convertInt8bits, readTwoInt40bits, convertBase64ToBuffer } from "../util/bitPacker.js";
 import sharp from "sharp";
 import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PICTURE } from "../config/options.js";
 
 import makeFetchCookie from "fetch-cookie";
+import { handlePixelChanges } from "../config/changesProtocol.js";
 
 const cookieFetch = makeFetchCookie(fetch);
 
@@ -91,30 +91,14 @@ class PixelSaver {
 
 	static applyChangesOnImage(changes) {
 
-		if(!changes) return false;
-
-		const buffer = convertBase64ToBuffer(changes);
-		if(buffer.byteLength % 6 == 0)
-		{
-			for(let i = 0;i< buffer.byteLength/6;i++)
-			{
-				let xy = readTwoInt40bits([
-					buffer.readUInt8(i*6 + 0),
-					buffer.readUInt8(i*6 + 1),
-					buffer.readUInt8(i*6 + 2),
-					buffer.readUInt8(i*6 + 3),
-					buffer.readUInt8(i*6 + 4)]);
-
-				let color = buffer.readUInt8(i*6 + 5);
-
-				PixelSaver.setSinglePixel(xy[0],xy[1],PALLETE[color]);
+		return handlePixelChanges(
+			changes,
+			PALLETE,
+			(hexColor,x,y) => {
+				const rgb = parseInt(hexColor,16);
+				PixelSaver.setSinglePixel(x,y,rgb);
 			}
-
-			return true;
-		} else {
-			console.log("Erro ao aplicar mudanças na imagem, buffer de tamanho inválido:"+buffer.byteLength);
-			return false;
-		}
+		);
 	}
 
 	static async doChangesGet() {

@@ -96,10 +96,10 @@ export default class CanvasPicture {
 		return {drag:false,doselect:false,dragdraw:false,dotarget:true,target:tclickCenter};
 	}*/
 	
-	drawPixel(rgb,x,y)
+	drawPixel(hexColor,x,y)
 	{
 		//var rgb = this.pallete[color];
-		this.pixctx.fillStyle = "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",1)";
+		this.pixctx.fillStyle = "#"+hexColor;
 		this.pixctx.fillRect( x, y, 1, 1 );
 	}
 	
@@ -108,7 +108,7 @@ export default class CanvasPicture {
 		const w = estado.width;
         const h = estado.height;
 		
-		//this.drawPixel([255,0,0],this.lastPixClick.x,this.lastPixClick.y);
+		//this.drawPixel("FF0000",this.lastPixClick.x,this.lastPixClick.y);
 
 		ctx.imageSmoothingEnabled = false;
 		ctx.drawImage(this.pixcanvas,
@@ -119,8 +119,7 @@ export default class CanvasPicture {
 		this.lastPixClick.x = Math.min(Math.max(Math.floor(center.x),0),this.imgw-1);
 		this.lastPixClick.y = Math.min(Math.max(Math.floor(center.y),0),this.imgh-1);
 		
-		let rgb = [255,0,0];
-		ctx.fillStyle = "rgba("+rgb[0]+","+rgb[1]+","+rgb[2]+",1)";
+		ctx.fillStyle = "#FF0000";
 		ctx.strokeStyle = "rgba(230,230,230,1)";
 		ctx.lineWidth = 0.5;
 		ctx.strokeRect( this.lastPixClick.x, this.lastPixClick.y, 1, 1 );

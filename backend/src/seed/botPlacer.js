@@ -28,7 +28,7 @@ class BotPlacer {
 	async randomPlace() {
 		const x = Math.floor(Math.random()*(this.width-1));
 		const y = Math.floor(Math.random()*(this.height-1));
-		const c = Math.floor(Math.random()*(this.pallete.length-1));
+		const c = 15;//Math.floor(Math.random()*(this.pallete.length-1));
 
 		return await this.doPixelPost(x,y,c);
 	}

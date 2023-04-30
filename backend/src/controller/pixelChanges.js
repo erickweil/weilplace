@@ -1,6 +1,7 @@
 // Enquanto não tem banco, este arquivo cria um MOCK do que seria uma imagem
 
-import { convertBytesToBase64, convertTwoInt40bits, convertInt8bits } from "../util/bitPacker.js";
+import { convertChangeToBase64 } from "../config/changesProtocol.js";
+
 
 // vai ser um stream do redis https://redis.io/docs/data-types/streams/
 const lastChanges = [];
@@ -16,16 +17,7 @@ class PixelChanges {
     setPixel(1048575,1048575,255);
     */
 	static setPixel(x,y,c) {
-		// 2.5 byte x
-		// 2.5 byte y
-		// 1 byte color
-		// total: 6 bytes. -> 8 chars in base64
-		let bytearr = [];
-		bytearr.push(...convertTwoInt40bits(x,y));
-		bytearr.push(...convertInt8bits(c));
-
-		const base64chang = convertBytesToBase64(bytearr);
-		lastChanges.push(base64chang);
+		lastChanges.push(convertChangeToBase64(x,y,c));
 	}
 
 	static getChanges(index) {

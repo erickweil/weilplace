@@ -1,3 +1,4 @@
+// Manter sincronizado com o backend
 import { Buffer } from "buffer";
 
 // A ideia é manipular bit a bit de forma fácil

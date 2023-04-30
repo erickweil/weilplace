@@ -3,9 +3,21 @@ import NextImage from 'next/image'
 import { mesclarEstado } from '@/components/Canvas/CanvasControler'
 import CanvasPicture from "./CanvasPicture";
 import { getApiURL } from "@/config/api";
-import { convertBase64ToBuffer, readTwoInt40bits } from "@/util/bitPacker";
+import { handlePixelChanges } from "@/config/changesProtocol";
 
 const PixelsView = (props) => {
+
+	const { pallete, imagemUrl, imagemOffset, options:_options, ...rest } = props
+
+    const defaultOptions = {
+		spanButton: "any", // left | middle | right | any
+		maxZoomScale: 256.0, // 1 pixel == 16 pixels   (Tela Full HD veria 120x67 pixels da imagem )
+		minZoomScale: 0.0625, // 1 pixel == 0.05 pixels (Tela Full HD veria 30.720x17.280 pixels de largura 'quatro imagens 8K')
+		changesDelayFetch: 1000,
+		DEBUG: false,
+	};
+    const options = _options ? {...defaultOptions,..._options} : defaultOptions;
+
 	// Função que desenha tudo
 	const mydraw = (ctx, estado) => {
 		const w = estado.width;
@@ -25,9 +37,16 @@ const PixelsView = (props) => {
 			let diferenca = agora - estado.changesUltimoFetch;
 			if(diferenca > estado.changesDelayFetch) {
 				doFetchChanges(estado);
+				return false; // Não causa redraw
 			}
-
-			return false; // Não causa redraw
+			else
+			{
+				// retorna uma 'mudança' para causar redraw
+				// pois acabou de terminar o último fetch então pode precisar
+				if(estado.changesNeedsRedraw)
+				return { changesNeedsRedraw: false }
+				else return false
+			}
 		} else {
 			// esperando terminar fetch
 			return false; // Não causa redraw
@@ -49,10 +68,9 @@ const PixelsView = (props) => {
 				const changes = json.contents.changes;
 				if(i != estado.changesOffset) {
 					estado.changesOffset = i;
-
-					if(applyChangesOnImage(estado,changes)) {
-						//redraw?
-					}
+					estado.changesNeedsRedraw = handlePixelChanges(changes,pallete,(hexColor,x,y) => {
+						estado.canvasPicture.drawPixel(hexColor,x,y);
+					});
 				}
 			} catch(e) {
 				console.log("Erro ao carregar mudanças da imagem:",e);
@@ -67,35 +85,6 @@ const PixelsView = (props) => {
 			estado.changesTerminouFetch = true;
 		});
 
-	}
-
-	const applyChangesOnImage = (estado,changes) => {
-
-		if(!changes) return false;
-
-		const buffer = convertBase64ToBuffer(changes);
-		if(buffer.byteLength % 6 == 0)
-		{
-			for(let i = 0;i< buffer.byteLength/6;i++)
-			{
-				let xy = readTwoInt40bits([
-					buffer.readUInt8(i*6 + 0),
-					buffer.readUInt8(i*6 + 1),
-					buffer.readUInt8(i*6 + 2),
-					buffer.readUInt8(i*6 + 3),
-					buffer.readUInt8(i*6 + 4)]);
-
-				let color = buffer.readUInt8(i*6 + 5);
-
-				//PixelSaver.setSinglePixel(xy[0],xy[1],PALLETE[color]);
-				estado.canvasPicture.drawPixel([0,255,0],xy[0],xy[1]);
-			}
-
-			return true;
-		} else {
-			console.log("Erro ao aplicar mudanças na imagem, buffer de tamanho inválido:"+buffer.byteLength);
-			return false;
-		}
 	}
 
 	const imagemCarregou = (estado, myImg, url,imagemOffset,pallete) => {
@@ -149,21 +138,22 @@ const PixelsView = (props) => {
 			changesOffset: -1,
 			changesTerminouFetch: true,
 			changesUltimoFetch: -1,
-			changesDelayFetch: 3000,
+			changesDelayFetch: options.changesDelayFetch,
+			changesNeedsRedraw: false,
 			pallete: false,
 			
 		});
 
 		//const pictureResponse = getData("picture", false)
-		carregarImagem(estado,props.imagemUrl,props.imagemOffset,props.pallete);
+		carregarImagem(estado,imagemUrl,imagemOffset,pallete);
 	};
 
 	const onPropsChange = (estado) => {
 		if(!estado.canvasPicture 
-			|| props.pallete != estado.pallete
-			|| props.imagemOffset != estado.canvasPictureOffset)
+			|| pallete != estado.pallete
+			|| imagemOffset != estado.canvasPictureOffset)
         {
-			carregarImagem(estado,props.imagemUrl,props.imagemOffset,props.pallete);
+			carregarImagem(estado,imagemUrl,imagemOffset,pallete);
 		}
 	};
 
@@ -172,13 +162,7 @@ const PixelsView = (props) => {
 			getInitialState={myGetInitialState}
 			onPropsChange={onPropsChange}
 			draw={mydraw}
-			options={{
-				spanButton: "any", // left | middle | right | any
-				maxZoomScale: 256.0, // 1 pixel == 16 pixels   (Tela Full HD veria 120x67 pixels da imagem )
-				minZoomScale: 0.0625, // 1 pixel == 0.05 pixels (Tela Full HD veria 30.720x17.280 pixels de largura 'quatro imagens 8K')
-				DEBUG: true,
-				spanSpeed: 15
-			}}
+			options={options}
 			
 			everyFrame={everyFrame}
 			events={{}}

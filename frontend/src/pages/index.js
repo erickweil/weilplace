@@ -93,8 +93,18 @@ export default function Home() {
       {
         (() => {
           const pictureResponse = getData("picture",false);
+          const pallete = getData("pallete",[]);
           if(!pictureResponse) return (<p>Carregando...</p>);
-          else return ( <PixelsView imagemUrl={pictureResponse.src} imagemOffset={pictureResponse.offset} /> );
+          else return ( 
+          <PixelsView 
+            pallete={pallete} 
+            imagemUrl={pictureResponse.src} 
+            imagemOffset={pictureResponse.offset} 
+            options={{
+              DEBUG: true
+            }}
+            /> 
+          );
         })()
       }
       
