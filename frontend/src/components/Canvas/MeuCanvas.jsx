@@ -91,7 +91,7 @@ const MeuCanvas = props => {
     }
     
     // Removing custom doZoom listener from canvasListeners to prevent React Error
-    const { doZoom, ...canvasListeners} = myListeners;
+    const { doZoom, onSpan, ...canvasListeners} = myListeners;
     return <canvas
         tabIndex="0"
         id="canvasInAPerfectWorld" 

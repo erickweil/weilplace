@@ -14,6 +14,7 @@ const haiku = () =>{
 export class SessionManager {
 
 	static initSession(req,res,next) {
+
 		if(!req.session.username) {	
 			req.session.username = haiku();
 			req.session.lastPlaced = -1;

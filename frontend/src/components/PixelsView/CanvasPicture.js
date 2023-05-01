@@ -19,8 +19,6 @@ export default class CanvasPicture {
         this.pixctx = this.pixcanvas.getContext("2d");
 		this.pixctx.imageSmoothingEnabled = false;
 		this.pixctx.drawImage(img,0,0);
-		
-		this.lastPixClick = {x:0,y:0};
 	}
 	
 	/*// funcoes utilitarias
@@ -113,16 +111,6 @@ export default class CanvasPicture {
 		ctx.imageSmoothingEnabled = false;
 		ctx.drawImage(this.pixcanvas,
 			this.pos.x, this.pos.y,
-			this.imgw, this.imgh);
-
-		let center = pageToZoomCanvas({x:w/2,y:h/2},estado.offsetLeft,estado.offsetTop,estado.span,estado.scale);
-		this.lastPixClick.x = Math.min(Math.max(Math.floor(center.x),0),this.imgw-1);
-		this.lastPixClick.y = Math.min(Math.max(Math.floor(center.y),0),this.imgh-1);
-		
-		ctx.fillStyle = "#FF0000";
-		ctx.strokeStyle = "rgba(230,230,230,1)";
-		ctx.lineWidth = 0.5;
-		ctx.strokeRect( this.lastPixClick.x, this.lastPixClick.y, 1, 1 );
-		ctx.fillRect( this.lastPixClick.x, this.lastPixClick.y, 1, 1 );		
+			this.imgw, this.imgh);	
 	}
 }

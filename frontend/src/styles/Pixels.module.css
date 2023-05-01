@@ -18,21 +18,15 @@
 	box-shadow:  2px 4px 6px #666;
 	left: 50%;
 	transform: translate(-50%, 0);
-
-	
-	display: none;
 }
 
 .colorPicker {
-	
-	
 	position: fixed;
 	background-color:white;
 	padding:0.5em;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	display: block;
 	
 	text-align: center;
 }

@@ -1,27 +1,20 @@
 import Head from 'next/head'
 import NextImage from 'next/image'
 import { Inter } from 'next/font/google'
-import styles from '@/styles/Pixels.module.css'
 import NonSSRWrapper from '@/components/no-ssr-wrapper'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import PixelsView from '@/components/PixelsView/PixelsView'
 import { getApiURL } from '@/config/api'
+import PalleteColorPicker from '@/components/PalleteColorPicker'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export default function Home() {
-  console.log("Is SSR? -->", typeof window === "undefined");
+const pixelsViewOptions = {
+  DEBUG: false
+};
 
-  // https://nextjs.org/docs/basic-features/data-fetching/client-side
-  const [data, setData] = useState({})
 
-  const getData = (key,default_value) => {
-    if(!data || !data[key] || data[key].content === undefined) return default_value;
-
-    return data[key].content;
-  }
-
-  const setFetchData = (key,content,loaded) => {
+export const setFetchData = (data,key,content,loaded) => {
     const newData = {};
     newData[key] = {loaded:loaded,content:content};
     
@@ -37,47 +30,102 @@ export default function Home() {
     // os valores atualizados, e ao setar o objeto do estado é necessário
     // que seja um novo objeto (com spread operator para criar ele). 
     Object.assign(data,newData);
-    setData({...data});
-  }
+    //setData({...data});
+    return {...data};
+}
 
-  const doFetchPallete = () => {
-    console.log("Executou getPallete Is SSR? -->", typeof window === "undefined");
-  
-    fetch(getApiURL("/pallete"))
-    .then((res) => res.json())
-    .then((json) => {
-      if(!json || !json.pallete) {
-        console.log("Não foi possível carregar a palleta de cores.")
-        return
-      }
-      setFetchData("pallete",json.pallete,true)
-    });
-  }
+export const getData = (data,key,default_value) => {
+  if(!data || !data[key] || data[key].content === undefined) return default_value;
 
-  const doFetchPicture = () => {
-    console.log("Executou getPicture Is SSR? -->", typeof window === "undefined");
-  
-    fetch(getApiURL("/picture"))
-    .then((res) => Promise.all([res,res.blob()]))
-    .then(([res,blob]) => {
-      if(!blob) {
-        console.log("Não foi possível carregar a imagem.")
-        return
-      }
+  return data[key].content;
+}
 
-      const offset = parseInt(res.headers.get("x-changes-offset"));
-      const imgObjectURL = URL.createObjectURL(blob);
+export const doPixelPost = async (x,y,c) => {				
+  const res = await fetch(getApiURL("/pixel"),{
+    method: "POST",
+    body: JSON.stringify({x:x, y:y, c:c}),
+    headers: { "Content-Type": "application/json" },
+    credentials: 'include'
+  });
+  return res.json();
+}
 
-      console.log("Carregou a imagem, offset %d",offset);
-      setFetchData("picture",{src:imgObjectURL,offset:offset},true)
-    });
-  }
+export default function Home() {
+  console.log("Executou Home() Is SSR? -->", typeof window === "undefined");
+
+  // https://nextjs.org/docs/basic-features/data-fetching/client-side
+  const [data, setData] = useState({})
+
+  const [centerPixelPos, setCenterPixelPos] = useState({x:0,y:0});
+  const centerPixelPosRef = useRef(centerPixelPos);
+
+  const [placePixelDelay, setplacePixelDelay] = useState(0);
+
+  const [colorIndex, _setColorIndex] = useState(0);
+  const colorIndexRef = useRef(colorIndex);
+
+  const setColorIndex = (value) => {
+    colorIndexRef.current = value
+    _setColorIndex(value);
+  };
 
   useEffect(() => {
+    const doFetchPallete = () => {    
+      fetch(getApiURL("/pallete"),{credentials: 'include'})
+      .then((res) => res.json())
+      .then((json) => {
+        if(!json || !json.pallete) {
+          console.log("Não foi possível carregar a palleta de cores.")
+          return
+        }
+        setData(data => setFetchData(data,"pallete",json.pallete,true));
+      });
+    }
+  
+    // Pegando a imagem com fetch para ler o Header com o offset das mudanças
+    // Assim é garantido que não faltará nenhum pixel a ser colocado.
+    const doFetchPicture = () => {    
+      fetch(getApiURL("/picture"),{credentials: 'include'})
+      .then((res) => Promise.all([res,res.blob()]))
+      .then(([res,blob]) => {
+        if(!blob) {
+          console.log("Não foi possível carregar a imagem.")
+          return
+        }
+  
+        const offset = parseInt(res.headers.get("x-changes-offset"));
+        const imgObjectURL = URL.createObjectURL(blob);
+  
+        console.log("Carregou a imagem, offset %d",offset);
+        setData(data => setFetchData(data,"picture",{src:imgObjectURL,offset:offset},true));
+      });
+    }
+
     doFetchPallete();
     doFetchPicture();
   }, [])
 
+  // Precisa usar callback porque o PixelsView é componente com memo
+  // Ou seja, para previnir re-draw a callback não pode ser criada de-novo
+  const notifyCenterPixel = useCallback((pos) => {
+    setCenterPixelPos(prev => {
+      let ret = {x:pos.x,y:pos.y}
+      centerPixelPosRef.current = ret
+      return ret;
+    });
+  }, [setCenterPixelPos]);
+
+  const onPlacePixel = useCallback(async () => {
+    const resp = await doPixelPost(centerPixelPosRef.current.x, centerPixelPosRef.current.y,colorIndexRef.current);
+    if(!resp || !resp.contents) return;
+    
+    if(resp.contents.delay != 0) {
+      setplacePixelDelay(prev => (Date.now() + resp.contents.delay * 1000));
+    }
+  }, [colorIndexRef,centerPixelPosRef,setplacePixelDelay]);
+
+  const pictureResponse = getData(data,"picture",false);
+  const pallete = getData(data,"pallete",[]);
   return (
     <>
       <Head>
@@ -91,51 +139,33 @@ export default function Home() {
       <NonSSRWrapper>
 
       {
-        (() => {
-          const pictureResponse = getData("picture",false);
-          const pallete = getData("pallete",[]);
-          if(!pictureResponse) return (<p>Carregando...</p>);
-          else return ( 
+          pictureResponse ?
+          ( 
+          // Muito cuidado com os props desse componente
+          // Tem que ser valores que NÃO IRÃO MUDAR quando o componente atualizar qualquer coisinha
+          // qualquer callback tem que usar o useCallback para não ser um objeto diferente cada vez
+          // Não que irá parar de funcionar mas fica muito lento se fizer redraw a cada frame por exemplo (tipo muito lento mesmo completamente atoa)
           <PixelsView 
             pallete={pallete} 
             imagemUrl={pictureResponse.src} 
             imagemOffset={pictureResponse.offset} 
-            options={{
-              DEBUG: true
-            }}
+            options={pixelsViewOptions}
+            notifyCenterPixel={notifyCenterPixel}
+            onPlacePixel={onPlacePixel}
             /> 
-          );
-        })()
+          ) :
+          (<p>Carregando...</p>)
       }
       
-
-      <div className={`${styles.divPlacenow}`}>
-      <p >Insira um pixel <span className={`${styles.coordinates2}`}>(0,0)</span></p>
-      </div>
-
-      <div className={`${styles.colorPicker}`}>
-      <div className={`${styles.colorPickerTxt}`}>
-      <p className={`${styles.coordinates}`}>(0,0)</p>
-      </div>
-      <div className={`${styles.colorPickerTableDiv}`}>
-      <table className={`${styles.colorPickerTable}`}>
-      <tbody>
-      <tr>
-        {
-          getData("pallete",[]).map(color => {
-            return (
-              <th className={`${styles.colorbutton}`} style={{backgroundColor:`#${color}`}}>&nbsp;</th>
-            )
-          })
-        }
-      </tr>
-      </tbody>
-      </table>
-      </div>
-      <div className={`${styles.colorPickerButtonDiv}`}>
-      <button className={`${styles.button}`}>✕</button><button className={`${styles.button}`}>✓</button>
-      </div>
-      </div>
+      <PalleteColorPicker
+        timeToPlaceAgain={placePixelDelay}
+        pallete={pallete}
+        coordinates={centerPixelPos}
+        onPlacePixel={onPlacePixel}
+        colorIndex={colorIndex}
+        setColorIndex={setColorIndex}
+      />
+      
     </NonSSRWrapper>
     </>
   )

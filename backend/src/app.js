@@ -19,10 +19,15 @@ const app = express();
 
 // Habilita o CORS para todas as origens
 app.use(cors({
+	// https://stackoverflow.com/questions/19743396/cors-cannot-use-wildcard-in-access-control-allow-origin-when-credentials-flag-i
+	origin: (origin,callback) => {
+		return callback(null,true);
+	},
 	exposedHeaders: [
 		// Utilizado pela rota /picture, para informar offset de mudanças do último save da imagem
 		"X-Changes-Offset"
-	]
+	],
+	credentials: true
 }));
 
 // habilitando o uso de json pelo express
@@ -36,6 +41,7 @@ app.use(session({
 	saveUninitialized: true,
 	cookie: {
 		sameSite: "strict",
+		httpOnly: false,
 		maxAge: SESSION_MAX_AGE
 	}
 }));

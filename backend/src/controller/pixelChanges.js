@@ -6,6 +6,7 @@ import { convertChangeToBase64 } from "../config/changesProtocol.js";
 // vai ser um stream do redis https://redis.io/docs/data-types/streams/
 const lastChanges = [];
 let savedIndex = 0; // índice do último save no disco
+let identifier = ""+Date.now(); // Para impedir que mudanças sejam aplicadas na imagem errada
 
 class PixelChanges {
 
@@ -22,14 +23,22 @@ class PixelChanges {
 
 	static getChanges(index) {
 		const changesLength = lastChanges.length;
-		if(index <= -1 || index >= changesLength) {
+		if(index <= -1 || index > changesLength) {
+			// Retorna o id de quando a imagem foi salva a última vez
 			return {
-				i: savedIndex
+				i: savedIndex,
+				identifier: identifier
+			};
+		} else if(index == changesLength) {
+			return {
+				i: changesLength,
+				identifier: identifier
 			};
 		} else {
 			return {
 				changes: lastChanges.slice(index,changesLength).join(""),
-				i: changesLength
+				i: changesLength,
+				identifier: identifier
 			};
 		}
 	}

@@ -94,8 +94,7 @@ class PixelSaver {
 		return handlePixelChanges(
 			changes,
 			PALLETE,
-			(hexColor,x,y) => {
-				const rgb = parseInt(hexColor,16);
+			(rgb,x,y) => {
 				PixelSaver.setSinglePixel(x,y,rgb);
 			}
 		);
@@ -103,6 +102,7 @@ class PixelSaver {
 
 	static async doChangesGet() {
 		//const resp = PixelChanges.getChanges(last_i);
+		
 		const url = new URL(API_URL+"/changes");
 		url.search =  new URLSearchParams({i:last_i});
 		const res = await cookieFetch(url,{method:"GET"});

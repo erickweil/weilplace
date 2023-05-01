@@ -18,6 +18,41 @@ export function pageToZoomCanvas(p,offsetLeft,offsetTop,span,scale)
     return {x:tp.x / scale + span.x,y:tp.y / scale + span.y};
 }
 
+export function doZoomWithCenter(estado,newScale,center)
+{
+    let scale = estado.scale;
+    let span = estado.span;
+    let mouse = estado.mouse;
+    let offLeft = estado.offsetLeft;
+    let offTop = estado.offsetTop;
+
+    let before = pageToZoomCanvas({
+        x:center.x,
+        y:center.y
+    },offLeft,offTop,span,scale);
+
+    //scale *= delta;
+    scale = newScale;
+
+    let after = pageToZoomCanvas({
+        x:center.x,
+        y:center.y
+    },offLeft,offTop,span,scale);
+
+    span.x -= after.x - before.x;
+    span.y -= after.y - before.y;
+
+    const newMousePos = pageToZoomCanvas({x:mouse.pageX,y:mouse.pageY},offLeft,offTop,span,scale); // Atualiza o mouse com a nova transformação
+    mouse.x = newMousePos.x;
+    mouse.y = newMousePos.y;
+
+    return {
+        scale:scale,
+        span:span,
+        mouse:mouse
+    };
+}
+
 /**
  * Zoomable Canvas
  * Permite mover para os lados e dar zoom no canvas
@@ -196,21 +231,28 @@ const ZoomableCanvas = (props) => {
 
         if(estado.spanEnabled)
         {
-            const span = estado.span;
-            let spanned = estado.spanned;
-
             if(estado.spanning)
             {
+                const span = estado.span;
                 span.x -= mouse.x - estado.spanningStart.x;
                 span.y -= mouse.y - estado.spanningStart.y;
-                spanned = true;
-            }
 
-            mesclarEstado(estado,{
-                mouse:getMouse(e,estado),
-                span:span,
-                spanned:spanned
-            });
+                mesclarEstado(estado,{
+                    mouse:getMouse(e,estado),
+                    span:span,
+                    spanned:true
+                });
+
+                if(events.onSpan) mesclarEstado(estado,events.onSpan(e,estado));
+            }
+            else
+            {
+                mesclarEstado(estado,{
+                    mouse:getMouse(e,estado),
+                    spanning: false,
+                    spanned: false
+                });
+            }
         }
         else
         {
@@ -254,9 +296,9 @@ const ZoomableCanvas = (props) => {
 
             if(spanningClick && events.onClick)
             {
-                mesclarEstado(estado,events.onMouseDown(e,estado)); // Simulate all events, because they where not propagated
-                mesclarEstado(estado,events.onMouseUp(e,estado));
-                mesclarEstado(estado,events.onClick(e,estado));
+                if(events.onMouseDown) mesclarEstado(estado,events.onMouseDown(e,estado)); // Simulate all events, because they where not propagated
+                if(events.onMouseUp) mesclarEstado(estado,events.onMouseUp(e,estado));
+                if(events.onClick) mesclarEstado(estado,events.onClick(e,estado));
             }
         }
     };
@@ -264,39 +306,14 @@ const ZoomableCanvas = (props) => {
     const doZoom = (e,estado) => {  
         if(!estado.zoomEnabled) return;
 
-        let scale = estado.scale;
-        let span = estado.span;
-        let mouse = estado.mouse;
-        let offLeft = estado.offsetLeft;
-        let offTop = estado.offsetTop;
-        //let screenPos = {pageX:window.innerWidth/2.0,pageY:window.innerHeight/2.0};
-        //let screenPos = mouse;
-
-        let before = pageToZoomCanvas({
+        let newScale = estado.scale * e.delta;
+        newScale = Math.max(Math.min(newScale,maxZoomScale),minZoomScale);
+        mesclarEstado(estado,doZoomWithCenter(estado,newScale,{
             x:e.pageX,
             y:e.pageY
-        },offLeft,offTop,span,scale);
+        }));
 
-		scale *= e.delta;
-		scale = Math.max(Math.min(scale,maxZoomScale),minZoomScale);
-		
-        let after = pageToZoomCanvas({
-            x:e.pageX,
-            y:e.pageY
-        },offLeft,offTop,span,scale);
-
-		span.x -= after.x - before.x;
-		span.y -= after.y - before.y;
-
-        const newMousePos = pageToZoomCanvas({x:mouse.pageX,y:mouse.pageY},offLeft,offTop,span,scale); // Atualiza o mouse com a nova transformação
-        mouse.x = newMousePos.x;
-        mouse.y = newMousePos.y;
-
-        return {
-            scale:scale,
-            span:span,
-            mouse:mouse
-        };
+        if(events.onSpan) mesclarEstado(estado,events.onSpan(e,estado));
     };
 
     const onWheel = (e,estado) => {
@@ -339,7 +356,7 @@ const ZoomableCanvas = (props) => {
 
         if(events.onMouseEnter) return events.onMouseEnter(e,estado);
     }
-
+    
     // Não é o jeito certo? idaí?
     const myGetInitialState = (estado) => {
 

@@ -5,13 +5,17 @@ import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PALLETE, PATH_PICTURE, PLACE_D
 
 const router = express.Router();
 
+function isIntStr(value) {
+	return /^-?\d+$/.test(value);
+}
+
 function parseIntBounded(str,min,max) {
 	let parsed = parseInt(str);
 	return Math.max(min,Math.min(parsed,max));
 }
 
 router.post("/pixel", (req,res) => {
-	if(!req.body.x || !req.body.y || !req.body.c) 
+	if(!isIntStr(req.body.x) || !isIntStr(req.body.y) || !isIntStr(req.body.c)) 
 		return res.status(400).json({ message: "É necessário x e y para posição e c para cor" });
 
 	const coord_x = parseIntBounded(req.body.x,0,IMAGE_WIDTH-1);
@@ -30,7 +34,7 @@ router.post("/pixel", (req,res) => {
 
 			// Caso não esperou o suficiente responde com quanto tempo falta em segundos
 			if(timeElapsed < PLACE_DELAY) {
-				return res.status(200).json({ message: "DELAY", contents: {delay: -Math.ceil((PLACE_DELAY - timeElapsed)/1000)} });
+				return res.status(200).json({ message: "DELAY", contents: {delay: Math.ceil((PLACE_DELAY - timeElapsed)/1000)} });
 			}
 		}
 
@@ -44,7 +48,7 @@ router.post("/pixel", (req,res) => {
 });
 
 router.get("/changes", (req,res) => {
-	const index = req.query.i ? parseInt(req.query.i) : -1;
+	const index = isIntStr(req.query.i) ? parseInt(req.query.i) : -1;
 
 	const resp = PixelChanges.getChanges(index);
     
