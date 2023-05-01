@@ -10,6 +10,9 @@ export let API_SHARED_SECRET = "";
 export let LOG_ROUTES = false;
 export let SESSION_MAX_AGE = 0;
 export let PORT = 0;
+export let REDIS_ENABLED = false;
+export let REDIS_URL = "";
+export let REDIS_PREFIX = "";
 
 export let IMAGE_WIDTH = 0;
 export let IMAGE_HEIGHT = 0;
@@ -29,6 +32,9 @@ export const initOptions = () => {
 	API_URL = process.env.API_URL;
 	API_SHARED_SECRET = process.env.API_SHARED_SECRET;
 	LOG_ROUTES = process.env.LOG_ROUTES === "true";
+	REDIS_ENABLED = process.env.REDIS_ENABLED === "true";
+	REDIS_URL = process.env.REDIS_URL;
+	REDIS_PREFIX = process.env.REDIS_PREFIX;
 
 	const palleteJson = JSON.parse(readFileSync(PATH_PALLETE));
 

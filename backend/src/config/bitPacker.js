@@ -20,7 +20,7 @@ export const convertInt32bits = (value) => {
 		value & 0xFF,
 		(value >> 8) & 0xFF,
 		(value >> 16) & 0xFF,
-		(value >> 24) & 0xFF,
+		(value >> 24) & 0xFF
 	];
 };
 
@@ -33,7 +33,7 @@ export const convertTwoInt40bits = (a,b) => {
 		(b >> 8) & 0xFF,
 
 		// a and b '0x0F0000' bits are packed in the same byte
-		(((a >> 16) & 0x0F) << 4) | ((b >> 16) & 0x0F),
+		(((a >> 16) & 0x0F) << 4) | ((b >> 16) & 0x0F)
 	];
 };
 

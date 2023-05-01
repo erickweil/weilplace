@@ -13,19 +13,23 @@
     "lint": "npx eslint ./"
   },
   "nodemonConfig": {
-    "ignore": ["public/pixels/picture.png"]
+    "ignore": [
+      "public/pixels/picture.png"
+    ]
   },
   "author": "Erick Leonardo Weil",
   "license": "ISC",
   "dependencies": {
+    "connect-redis": "^7.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "fetch-cookie": "^2.1.0",
     "node-cron": "^3.0.2",
-    "sharp": "^0.32.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "redis": "^4.6.6",
+    "sharp": "^0.32.0"
   },
   "devDependencies": {
     "eslint": "^8.39.0",

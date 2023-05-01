@@ -133,6 +133,11 @@ class PixelSaver {
 
 				if(PixelSaver.applyChangesOnImage(changes)) {
 					console.log("Teve %d pixels modificados, Irá salvar...",changes.length/8);
+
+					if(changes.length % 8 != 0) {
+						console.log("Mudanças com tamanho estranho: %d\n%s",changes.length,changes);
+					}
+
 					await PixelSaver.savePicture();
 
 					await PixelSaver.doSetSavedIndexPost(i);

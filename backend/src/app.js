@@ -2,15 +2,31 @@ import express from "express";
 import * as dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
 import cors from "cors";
 import session from "express-session";
+import RedisStore from "connect-redis";
 
 import routes from "./routes/index.js";
-
-import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions } from "./config/options.js";
+import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED, REDIS_PREFIX } from "./config/options.js";
 import { SessionManager } from "./middleware/sessionManager.js";
+import PixelChanges from "./controller/pixelChanges.js";
+import { connectToRedis } from "./config/redisConnection.js";
+import RedisMock from "./controller/redisMock.js";
 
 dotenv.config();
 
 initOptions();
+
+let redisClient = false;
+if(REDIS_ENABLED) {
+	redisClient = await connectToRedis();
+} else {
+	redisClient = new RedisMock();
+	console.log("**********************************************************");
+	console.log("* Irá guardar mudanças na memória                        *");
+	console.log("* NESTE MODO DE OPERAÇÃO APENAS 1 INSTÂNCIA É SUPORTADA! *");
+	console.log("**********************************************************");
+}
+
+await PixelChanges.init(redisClient);
 
 const app = express();
 
@@ -35,16 +51,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Depois tem que fazer a sessão salvar no redis
-app.use(session({
+
+let sessionOptions = {
 	secret: SESSION_SECRET,
 	resave: true,
 	saveUninitialized: true,
 	cookie: {
 		sameSite: "strict",
 		httpOnly: false,
-		maxAge: SESSION_MAX_AGE
+		maxAge: SESSION_MAX_AGE*1000 // em milissegundos
 	}
-}));
+};
+if(REDIS_ENABLED) {
+	// Initialize store.
+	const redisStore = new RedisStore({
+		client: redisClient,
+		prefix: (REDIS_PREFIX ? REDIS_PREFIX : "")+"sess:",
+		ttl: SESSION_MAX_AGE // ttl is in seconds. https://www.npmjs.com/package/connect-redis#ttl
+	});
+
+	sessionOptions.store = redisStore;
+}
+app.use(session(sessionOptions));
 
 app.use(SessionManager.initSession);
 

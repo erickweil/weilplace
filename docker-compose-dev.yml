@@ -16,7 +16,9 @@ services:
     environment:
       PORT: "3001"
       PATH_PICTURE: "./public/pixels/picture.png"
-      LOG_ROUTES: "false"
+      LOG_ROUTES: "true"
+      REDIS_ENABLED: "true"
+      REDIS_URL: "redis://weilplace-redis:6379"
     entrypoint: "/bin/sh -c 'npm install && npm run devStart'"
     networks:
       - weilplace
@@ -51,6 +53,13 @@ services:
       API_URL: "http://weilplace-server:3001"
       PORT: "3000"
     entrypoint: "/bin/sh -c 'npm install && npm run dev'"
+    networks:
+      - weilplace
+  weilplace-redis:
+    image: redis
+    container_name: weilplace-redis
+    ports:
+      - "6379:6379"
     networks:
       - weilplace
 

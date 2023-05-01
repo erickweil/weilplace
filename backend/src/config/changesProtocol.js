@@ -36,5 +36,12 @@ export const convertChangeToBase64 = (x,y,c) => {
 
 	const base64chang = convertBytesToBase64(bytearr);
 
+	// IMPORTANTE
+	// grantir que nunca irá adicionar uma string que não seja do tamanho certo
+	if(base64chang.length != 8) {
+		console.log("criou uma string de modificação inválida: {x:%d,y:%d,c:%d} -> bytearr.length:%d -> base64:%s",x,y,c,bytearr.length,base64chang);
+		return false;
+	}
+
 	return base64chang;
 };

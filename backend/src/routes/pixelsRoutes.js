@@ -14,7 +14,7 @@ function parseIntBounded(str,min,max) {
 	return Math.max(min,Math.min(parsed,max));
 }
 
-router.post("/pixel", (req,res) => {
+router.post("/pixel", async (req,res) => {
 	if(!isIntStr(req.body.x) || !isIntStr(req.body.y) || !isIntStr(req.body.c)) 
 		return res.status(400).json({ message: "É necessário x e y para posição e c para cor" });
 
@@ -42,22 +42,26 @@ router.post("/pixel", (req,res) => {
 		req.session.lastPlaced = Date.now();
 	}
 
-	PixelChanges.setPixel(coord_x,coord_y,color);
+	await PixelChanges.setPixel(coord_x,coord_y,color);
 
 	return res.status(200).json({ message: "OK", contents: {delay: Math.ceil(PLACE_DELAY/1000)} });
 });
 
-router.get("/changes", (req,res) => {
+router.get("/changes", async (req,res) => {
 	const index = isIntStr(req.query.i) ? parseInt(req.query.i) : -1;
 
-	const resp = PixelChanges.getChanges(index);
+	const resp = await PixelChanges.getChanges(index);
+
+	if(resp.error) {
+		return res.status(500).json(resp);
+	}
     
 	return res.status(200).json({ message: "OK", contents: resp });
 });
 
 router.get("/picture", async (req,res) => {
 	
-	const resp = PixelChanges.getChanges(-1);
+	const resp = await PixelChanges.getChanges(-1);
 	return res.status(200)
 		.sendFile(PATH_PICTURE,{
 			root: path.resolve(),
