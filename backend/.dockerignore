@@ -1,0 +1,7 @@
+node_modules
+.git
+.dockerignore
+.gitignore
+npm-debug.log
+Dockerfile
+public/pixels

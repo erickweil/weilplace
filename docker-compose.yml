@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  weilplace-server:
+    build: ./backend
+    container_name: weilplace-server
+    ports:
+      - "3001:3001"
+    volumes:
+      - weilplace-volume-pixels:/node-app/public/pixels:ro
+    environment:
+      PORT: "3001"
+      PATH_PICTURE: "./public/pixels/picture.png"
+      LOG_ROUTES: "false"
+    networks:
+      - weilplace
+  weilplace-pixelsaver:
+    build: ./backend
+    container_name: weilplace-pixelsaver
+    volumes:
+      - weilplace-volume-pixels:/node-app/public/pixels:rw
+    command: ["service_pixelsaver.js"]
+    environment:
+      API_URL: "http://weilplace-server:3001"
+      PATH_PICTURE: "./public/pixels/picture.png"
+    networks:
+      - weilplace
+  weilplace-frontend:
+    build: ./frontend
+    container_name: weilplace-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      API_URL: "http://weilplace-server:3001"
+      PORT: "3000"
+    networks:
+      - weilplace
+
+volumes:
+  weilplace-volume-pixels:
+
+networks:
+  weilplace:
+    driver: bridge
