@@ -16,6 +16,25 @@ class RedisMock {
 		return v === undefined ? null : v;
 	}
 
+	async MGET(arrkeys) {
+		let ret = [];
+		for(let i =0;i<arrkeys.length;i++) {
+			const value = await this.GET(arrkeys[i]);
+			ret.push(value);
+		}
+		return ret;
+	}
+
+	async MSET(arrkeyvalues) {
+		for(let i =0;i<arrkeyvalues.length/2;i++) {
+			const key = arrkeyvalues[i*2+0];
+			const value = arrkeyvalues[i*2+1];
+
+			await this.SET(key,value);
+		}
+		return "OK";
+	}
+
 	async APPEND(key,value) {
 		let v = this.keys[key];
 		if(v === undefined)
@@ -25,16 +44,19 @@ class RedisMock {
 		return this.keys[key].length;
 	}
 
-	// Não está de acordo com os docs, tanto o start e o end são inclusivos no redis
+	// tanto o start e o end são inclusivos no redis
+	// a saída é limitada ao tamanho da string
 	async GETRANGE(key,start,end) {
 		let v = this.keys[key];
 		if(v === undefined)
 			return "";
 		else {
-			if(end == -1)
-				return v.slice(start);
-			else
-				return v.slice(start,end); 
+			let len = v.length;
+			let strstart = start < 0 ? Math.max(start + len,0) : Math.min(Math.max(start,0),len);
+			let strend = end < 0 ? Math.max(end + len,0) : Math.min(Math.max(end,0),len);
+			
+			// +1 no end pq o slice do js o fim não é inclusivo
+			return v.slice(strstart,strend+1); 
 		}
 	}
 

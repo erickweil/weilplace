@@ -32,7 +32,8 @@ const PixelsView = (props) => {
 		spanButton: "any", // left | middle | right | any
 		maxZoomScale: 256.0, // 1 pixel == 16 pixels   (Tela Full HD veria 120x67 pixels da imagem )
 		minZoomScale: 0.0625, // 1 pixel == 0.05 pixels (Tela Full HD veria 30.720x17.280 pixels de largura 'quatro imagens 8K')
-		changesDelayFetch: 1000,
+		changesDelayFetch: 1000, // quando não houve modificações
+		changesDelayFastFetch: 200, // quando acabou de acontecer modificações
 		DEBUG: false,
 	};
     const options = _options ? {...defaultOptions,..._options} : defaultOptions;
@@ -139,6 +140,7 @@ const PixelsView = (props) => {
 		fetch(url,{method:"GET",credentials: 'include'})
 		.then((res) => res.json())
 		.then((json) => {
+			let delayNextFetch = estado.changesDelayFetch;
 			try {
 				const i = parseInt(json.contents.i);
 				const changes = json.contents.changes;
@@ -173,12 +175,16 @@ const PixelsView = (props) => {
 					(hexColor,x,y) => {
 						estado.canvasPicture.drawPixel(hexColor,x,y);
 					});
+
+					if(estado.changesNeedsRedraw) {
+						delayNextFetch = estado.changesDelayFastFetch;
+					}
 				}
 			} catch(e) {
 				console.log("Erro ao carregar mudanças da imagem:",e);
 			} finally {
 				estado.changesTerminouFetch = true;
-				estado.changesUltimoFetch = Date.now();
+				estado.changesUltimoFetch = Date.now() - (estado.changesDelayFetch-delayNextFetch);
 			}
 		})
 		.catch((error) => {
@@ -277,6 +283,7 @@ const PixelsView = (props) => {
 			changesTerminouFetch: true,
 			changesUltimoFetch: -1,
 			changesDelayFetch: options.changesDelayFetch,
+			changesDelayFastFetch: options.changesDelayFastFetch,
 			changesNeedsRedraw: false,
 			pallete: pallete,
 			centerPixel: {x:0,y:0},

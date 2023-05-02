@@ -19,6 +19,8 @@ services:
       LOG_ROUTES: "false"
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
+      #MAX_CHANGES_RESPONSE: 50
+      #MAX_CHANGES_SIZE: 100
     entrypoint: "/bin/sh -c 'npm install && npm run devStart'"
     networks:
       - weilplace
@@ -35,6 +37,8 @@ services:
     environment:
       API_URL: "http://weilplace-server:3001"
       PATH_PICTURE: "./public/pixels/picture.png"
+      #MAX_CHANGES_RESPONSE: 50
+      #MAX_CHANGES_SIZE: 100
     entrypoint: "/bin/sh -c 'npm install && npm run devSaver'"
     networks:
       - weilplace

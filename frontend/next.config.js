@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  assetPrefix: "/30080",
   webpack: (config,options) => {
     // Solve compiling problem via vagrant
     config.watchOptions = {

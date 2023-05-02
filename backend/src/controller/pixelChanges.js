@@ -67,16 +67,13 @@ class PixelChanges {
 			KEY_CHANGES = REDIS_PREFIX+KEY_CHANGES;
 		}
 
-		const [identifier, savedIndex] = await Promise.all([
-			redisClient.GET(KEY_IDENTIFIER),
-			redisClient.GET(KEY_SAVEDINDEX),
-		]);
+		const [identifier, savedIndex] =  await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
 		if(!identifier || !savedIndex) {
 			console.log("Não tinha nada no redis, iniciando com default",identifier,savedIndex);
-			await Promise.all([
-				redisClient.SET(KEY_SAVEDINDEX,""+0), // index do último save (já está dividido por 8)
-				redisClient.SET(KEY_IDENTIFIER,""+Date.now()), // identifier para fazer o cliente detectar que resetou as mudanças
-				redisClient.SET(KEY_CHANGES,"")
+			await redisClient.MSET([
+				KEY_SAVEDINDEX,""+0, // index do último save (já está dividido por 8)
+				KEY_IDENTIFIER,""+Date.now(), // identifier para fazer o cliente detectar que resetou as mudanças
+				KEY_CHANGES,""
 			]);
 		} else {
 			console.log("Carregou valores do redis: {identifier:%s, savedIndex:%s}",identifier,savedIndex);
@@ -100,22 +97,26 @@ class PixelChanges {
 	static async getChanges(pixelIndex) {
 		// Retorna o índice do último save quando solicitado com -1
 		if(pixelIndex <= -1 /*|| index > changesLength*/) {
-
-			// lembrar que quase tudo no redis são strings
-			const [identifier, savedIndex] = await Promise.all([
+			// Não ser atômico aqui pode ser um problema, considere receber um identifier novo porém o savedindex antigo
+			/*const [identifier, savedIndex] = await Promise.all([
 				redisClient.GET(KEY_IDENTIFIER),
 				redisClient.GET(KEY_SAVEDINDEX),
-			]);
+			]);*/
+
+			const ret = await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
 			// Retorna o id de quando a imagem foi salva a última vez
 			return {
-				i: savedIndex,
-				identifier: identifier
+				identifier: ret[0],
+				i: ret[1]
 			};
 		}
 
 		const changesIndex = pixelIndex * 8;
 		
 		// Executar vários comandos usnado pipelining. NÃO É ATÔMICO (https://github.com/redis/node-redis#auto-pipelining)
+		// O fato de não ser atômico aqui não é problema... 
+		// se receber o identifier antigo e changes novas no máximo vai levar 1 requisição a mais para atualizar
+		// e se receber o identifier novo vai ignorar as changes e atualizar
 		const [identifier, changes] = await Promise.all([
 			redisClient.GET(KEY_IDENTIFIER),
 
@@ -127,7 +128,7 @@ class PixelChanges {
 			// em vez de pegar assim, com -1 indicando que irá obter até o fim da string:
 			// redisClient.GETRANGE(KEY_CHANGES,changesIndex,-1)
 			// vai pegar as modificações assim:
-			redisClient.GETRANGE(KEY_CHANGES,changesIndex,changesIndex+(MAX_CHANGES_RESPONSE*8 -1))
+			redisClient.GETRANGE(KEY_CHANGES,changesIndex,changesIndex+(MAX_CHANGES_RESPONSE*8 -1)) // -1 pq é inclusivo o índice
 			// https://redis.io/commands/getrange/
 			// 	'The function handles out of range requests by limiting the resulting range to the actual length of the string.'
 			// O jeito que o GETRANGE funciona é que o index do fim é limitado ao tamanho da string, então
