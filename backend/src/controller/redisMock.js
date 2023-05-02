@@ -25,6 +25,7 @@ class RedisMock {
 		return this.keys[key].length;
 	}
 
+	// Não está de acordo com os docs, tanto o start e o end são inclusivos no redis
 	async GETRANGE(key,start,end) {
 		let v = this.keys[key];
 		if(v === undefined)
