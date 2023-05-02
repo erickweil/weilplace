@@ -16,7 +16,7 @@ services:
     environment:
       PORT: "3001"
       PATH_PICTURE: "./public/pixels/picture.png"
-      LOG_ROUTES: "true"
+      LOG_ROUTES: "false"
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
     entrypoint: "/bin/sh -c 'npm install && npm run devStart'"

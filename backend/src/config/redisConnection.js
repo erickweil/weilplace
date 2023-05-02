@@ -12,34 +12,39 @@ function throwTimeoutError() {
 	}, 10000);
 }
 
-export const connectToRedis = async () => {
+// só vai definir os scripts na primeira vez que tentar a conexão?
+export const connectToRedis = async (luaScripts) => {
 	if(redisClient !== false) return redisClient;
 	// https://plainenglish.io/blog/proper-way-to-connect-redis-nodejs-80023fb033db
-	redisClient = Redis.createClient({
+	let redisOptions = {
 		url: REDIS_URL
-	});
+	};
+	if(luaScripts) redisOptions.scripts = luaScripts;
 
-	redisClient.on("connect", () => {
+	let newRedisClient = Redis.createClient(redisOptions);
+	redisClient = newRedisClient;
+
+	newRedisClient.on("connect", () => {
 		console.log("Redis - Connection status: connected");
 		clearTimeout(connectionTimeout);
 	});
 
-	redisClient.on("end", () => {
+	newRedisClient.on("end", () => {
 		console.log("Redis - Connection status: disconnected");
 		throwTimeoutError();
 	});
 
-	redisClient.on("reconnecting", () => {
+	newRedisClient.on("reconnecting", () => {
 		console.log("Redis - Connection status: reconnecting");
 		clearTimeout(connectionTimeout);
 	});
 
-	redisClient.on("error", (err) => {
+	newRedisClient.on("error", (err) => {
 		console.log("Redis - Connection status: error ", { err });
 		throwTimeoutError();
 	});
 
-	await redisClient.connect();
+	await newRedisClient.connect();
 
-	return redisClient;
+	return newRedisClient;
 };

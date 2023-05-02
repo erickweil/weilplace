@@ -9,22 +9,12 @@ import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED
 import { SessionManager } from "./middleware/sessionManager.js";
 import PixelChanges from "./controller/pixelChanges.js";
 import { connectToRedis } from "./config/redisConnection.js";
-import RedisMock from "./controller/redisMock.js";
 
 dotenv.config();
 
 initOptions();
 
-let redisClient = false;
-if(REDIS_ENABLED) {
-	redisClient = await connectToRedis();
-} else {
-	redisClient = new RedisMock();
-	console.log("**********************************************************");
-	console.log("* Irá guardar mudanças na memória                        *");
-	console.log("* NESTE MODO DE OPERAÇÃO APENAS 1 INSTÂNCIA É SUPORTADA! *");
-	console.log("**********************************************************");
-}
+let redisClient = REDIS_ENABLED ?  await connectToRedis(PixelChanges.getLuaScriptsConfig()) : false;
 
 await PixelChanges.init(redisClient);
 
@@ -41,7 +31,8 @@ app.use(cors({
 	},
 	exposedHeaders: [
 		// Utilizado pela rota /picture, para informar offset de mudanças do último save da imagem
-		"X-Changes-Offset"
+		"X-Changes-Offset",
+		"X-Changes-Identifier"
 	],
 	credentials: true
 }));

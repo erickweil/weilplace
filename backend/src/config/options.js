@@ -13,6 +13,8 @@ export let PORT = 0;
 export let REDIS_ENABLED = false;
 export let REDIS_URL = "";
 export let REDIS_PREFIX = "";
+export let MAX_CHANGES_SIZE = 0;
+export let MAX_CHANGES_RESPONSE = 0;
 
 export let IMAGE_WIDTH = 0;
 export let IMAGE_HEIGHT = 0;
@@ -35,13 +37,15 @@ export const initOptions = () => {
 	REDIS_ENABLED = process.env.REDIS_ENABLED === "true";
 	REDIS_URL = process.env.REDIS_URL;
 	REDIS_PREFIX = process.env.REDIS_PREFIX;
+	MAX_CHANGES_SIZE = parseInt(process.env.MAX_CHANGES_SIZE);
+	MAX_CHANGES_RESPONSE = parseInt(process.env.MAX_CHANGES_RESPONSE);
 
-	const palleteJson = JSON.parse(readFileSync(PATH_PALLETE));
+	const palleteJson = JSON.parse(readFileSync(PATH_PALLETE,"utf8"));
 
 	for(let c of palleteJson.pallete) {
 		PALLETE.push(parseInt(c,16));
 	}
 
 	const PATH_NOMES = process.env.PATH_NOMES;
-	NOMES = JSON.parse(readFileSync(PATH_NOMES));
+	NOMES = JSON.parse(readFileSync(PATH_NOMES,"utf8"));
 };

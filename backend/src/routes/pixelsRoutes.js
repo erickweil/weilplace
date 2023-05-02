@@ -42,7 +42,21 @@ router.post("/pixel", async (req,res) => {
 		req.session.lastPlaced = Date.now();
 	}
 
-	await PixelChanges.setPixel(coord_x,coord_y,color);
+	
+	const resp = await PixelChanges.setPixel(coord_x,coord_y,color);
+	if(resp === false) {
+		console.log("Não foi possível setar o pixel");
+		return res.sendStatus(500);
+	}
+
+	/*// Para testar X16
+	for(let _x=0;_x<4;_x++) for(let _y=0;_y<4;_y++) {
+		
+		await PixelChanges.setPixel(
+			Math.max(0,Math.min(coord_x+_x,IMAGE_WIDTH-1)),
+			Math.max(0,Math.min(coord_y+_y,IMAGE_HEIGHT-1)),
+			color);
+	}*/
 
 	return res.status(200).json({ message: "OK", contents: {delay: Math.ceil(PLACE_DELAY/1000)} });
 });
@@ -53,6 +67,7 @@ router.get("/changes", async (req,res) => {
 	const resp = await PixelChanges.getChanges(index);
 
 	if(resp.error) {
+		console.log(resp.error);
 		return res.status(500).json(resp);
 	}
     
@@ -61,25 +76,24 @@ router.get("/changes", async (req,res) => {
 
 router.get("/picture", async (req,res) => {
 	
+	// Envia a imagem e o offset do último save dela,
+	// assim o próximo /changes irá continuar a partir
+	// do ponto correto, mesmo que entre receber essa imagem
+	// e iniciar o /changes houver modificações, ele irá recebê-las.
 	const resp = await PixelChanges.getChanges(-1);
+
 	return res.status(200)
 		.sendFile(PATH_PICTURE,{
 			root: path.resolve(),
 			headers: {
-				"X-Changes-Offset": resp.i
+				"X-Changes-Offset": resp.i, // Offset do último save da imagem
+				"X-Changes-Identifier": resp.identifier, // ID da string de modificações (Para evitar erros ao resetar as mudanças)
+				"Cache-Control": "no-store, must-revalidate",
+				"Pragma": "no-cache",
+				"Expires": "0"
 			}
 			// colocar body?
 		});
-
-	// https://stackoverflow.com/questions/30212813/express-return-binary-data-from-webservice
-	//const buffer = await PixelSaver.getPicture();
-	//res.writeHead(200, {
-	//'Content-Type': "image/png",        
-	//'Accept-Range': "none",
-	//'Cache-Control': 'no-cache, no-store, must-revalidate',
-	//'Content-Length': buffer.length
-	//});
-	//res.end(buffer);
 });
 
 router.get("/pallete", (req,res) => {

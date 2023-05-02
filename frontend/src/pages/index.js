@@ -81,28 +81,8 @@ export default function Home() {
         setData(data => setFetchData(data,"pallete",json.pallete,true));
       });
     }
-  
-    // Pegando a imagem com fetch para ler o Header com o offset das mudanças
-    // Assim é garantido que não faltará nenhum pixel a ser colocado.
-    const doFetchPicture = () => {    
-      fetch(getApiURL("/picture"),{credentials: 'include'})
-      .then((res) => Promise.all([res,res.blob()]))
-      .then(([res,blob]) => {
-        if(!blob) {
-          console.log("Não foi possível carregar a imagem.")
-          return
-        }
-  
-        const offset = parseInt(res.headers.get("x-changes-offset"));
-        const imgObjectURL = URL.createObjectURL(blob);
-  
-        console.log("Carregou a imagem, offset %d",offset);
-        setData(data => setFetchData(data,"picture",{src:imgObjectURL,offset:offset},true));
-      });
-    }
 
     doFetchPallete();
-    doFetchPicture();
   }, [])
 
   // Precisa usar callback porque o PixelsView é componente com memo
@@ -124,7 +104,6 @@ export default function Home() {
     }
   }, [colorIndexRef,centerPixelPosRef,setplacePixelDelay]);
 
-  const pictureResponse = getData(data,"picture",false);
   const pallete = getData(data,"pallete",[]);
   return (
     <>
@@ -138,24 +117,17 @@ export default function Home() {
       </Head>
       <NonSSRWrapper>
 
-      {
-          pictureResponse ?
-          ( 
-          // Muito cuidado com os props desse componente
-          // Tem que ser valores que NÃO IRÃO MUDAR quando o componente atualizar qualquer coisinha
-          // qualquer callback tem que usar o useCallback para não ser um objeto diferente cada vez
-          // Não que irá parar de funcionar mas fica muito lento se fizer redraw a cada frame por exemplo (tipo muito lento mesmo completamente atoa)
-          <PixelsView 
-            pallete={pallete} 
-            imagemUrl={pictureResponse.src} 
-            imagemOffset={pictureResponse.offset} 
-            options={pixelsViewOptions}
-            notifyCenterPixel={notifyCenterPixel}
-            onPlacePixel={onPlacePixel}
-            /> 
-          ) :
-          (<p>Carregando...</p>)
-      }
+      <PixelsView
+      // Muito cuidado com os props desse componente
+      // Tem que ser valores que NÃO IRÃO MUDAR quando o componente atualizar qualquer coisinha
+      // qualquer callback tem que usar o useCallback para não ser um objeto diferente cada vez
+      // Não que irá parar de funcionar mas fica muito lento se fizer redraw a cada frame por exemplo (tipo muito lento mesmo completamente atoa)
+       
+        pallete={pallete} 
+        options={pixelsViewOptions}
+        notifyCenterPixel={notifyCenterPixel}
+        onPlacePixel={onPlacePixel}
+      />
       
       <PalleteColorPicker
         timeToPlaceAgain={placePixelDelay}

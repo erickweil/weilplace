@@ -1,30 +1,69 @@
 // Enquanto não tem banco, este arquivo cria um MOCK do que seria uma imagem
+import { readFileSync } from "fs";
 
 import { convertChangeToBase64 } from "../config/changesProtocol.js";
 
-import { REDIS_ENABLED, REDIS_PREFIX } from "../config/options.js";
-import { connectToRedis } from "../config/redisConnection.js";
+import { MAX_CHANGES_RESPONSE, REDIS_PREFIX } from "../config/options.js";
 import RedisMock from "./redisMock.js";
+import { defineScript } from "redis";
 
 let KEY_IDENTIFIER = "changesid";
 let KEY_SAVEDINDEX = "savedindex";
 let KEY_CHANGES = "changes";
 
-// vai ser um stream do redis https://redis.io/docs/data-types/streams/
-//const lastChanges = [];
-//let savedIndex = 0; // índice do último save no disco
-//let identifier = ""+Date.now(); // Para impedir que mudanças sejam aplicadas na imagem errada
-
 let redisClient = false;
-
+/** Gerencia as modificações nos pixels
+ *  Utiliza uma string de mudanças que cresce conforme novas modificações são feitas
+ *  A string inteira é codificada em base64, mas a cada append são colocados exatamente
+ *  8 caracteres, que é a quantidade necessária para armazenar 6 bytes 
+ *  
+ *  Nesses 6 bytes está codificado a posição x e y com 20 bits cada um e a cor com 8 bits (total 48 bits)
+ *  Não é necessário re-codificar a inteira string a cada append, no caso é seguro concatenar os 8 caracteres
+ *  cada vez. Inclusive é certo que será uma string base64 válida a cada 8 caracteres, sendo possível extrair partes
+ * 
+ *  A forma como o cliente irá utilizar é que ele começa com o pedido do índice, seja por extrair do header ao baixar a imagem
+ *  ou por chamar o getChanges(-1).
+ *  Em seguida chama o getChanges(indice) onde indice é o valor recebido anteriormente. A cada resposta o índice é atualizado para
+ *  o tamanho atual. Cada getCanges pode ser uma resposta indicando que não houve mudanças, ou uma resposta com uma string base64
+ *  que pode ser desde 8 caracteres até Megabytes de tamanho, dependendo do intervalo extraído (Futuramente irá analizar como resetar as mudanças periodicamente).
+ *  O texto das mudanças é salvo no redis como uma única string, e acessado com o GETRANGE(indice,-1) para extrair o novo intervalo. 
+ * 
+ *  Obs: Se não especificar uma conexão do redis, irá guardar as mudanças na memória, com o RedisMock.
+ */
 class PixelChanges {
 
+	static getLuaScriptsConfig() {
+		return {
+			// https://www.npmjs.com/package/redis?activeTab=readme#Programmability
+			// https://github.com/redis/node-redis/blob/master/examples/lua-multi-incr.js
+			resetchanges: defineScript({
+				NUMBER_OF_KEYS: 3,
+				SCRIPT: readFileSync("./lua/resetChanges.lua","utf8"),
+				transformArguments(key1,key2,key3,arg1,arg2,arg3) {
+					return [key1,key2,key3,""+arg1,""+arg2,""+arg3];
+				},
+				transformReply(reply) {
+					return reply;
+				}
+			})
+		};
+	}
+	/** Especifique a conexão do redis ou então falso para guardar as mudanças na memória
+	*/
 	static async init(_redisClient) {
-		redisClient = _redisClient;
+		if(!_redisClient) {
+			redisClient = new RedisMock();
+			console.log("**********************************************************");
+			console.log("* Irá guardar mudanças na memória                        *");
+			console.log("* NESTE MODO DE OPERAÇÃO APENAS 1 INSTÂNCIA É SUPORTADA! *");
+			console.log("**********************************************************");
+		} else {
+			redisClient = _redisClient;
+		}
 
 		if(REDIS_PREFIX && !KEY_IDENTIFIER.startsWith(REDIS_PREFIX)) {
 			KEY_IDENTIFIER = REDIS_PREFIX+KEY_IDENTIFIER;
-			KEY_SAVEDINDEX = REDIS_PREFIX+KEY_IDENTIFIER;
+			KEY_SAVEDINDEX = REDIS_PREFIX+KEY_SAVEDINDEX;
 			KEY_CHANGES = REDIS_PREFIX+KEY_CHANGES;
 		}
 
@@ -34,16 +73,17 @@ class PixelChanges {
 		]);
 		if(!identifier || !savedIndex) {
 			console.log("Não tinha nada no redis, iniciando com default",identifier,savedIndex);
-			await redisClient.SET(KEY_SAVEDINDEX,""+0);
-			await redisClient.SET(KEY_IDENTIFIER,""+Date.now());
-			await redisClient.SET(KEY_CHANGES,"");
+			await Promise.all([
+				redisClient.SET(KEY_SAVEDINDEX,""+0), // index do último save (já está dividido por 8)
+				redisClient.SET(KEY_IDENTIFIER,""+Date.now()), // identifier para fazer o cliente detectar que resetou as mudanças
+				redisClient.SET(KEY_CHANGES,"")
+			]);
 		} else {
 			console.log("Carregou valores do redis: {identifier:%s, savedIndex:%s}",identifier,savedIndex);
 		}
 	}
 
 	static async setPixel(x,y,c) {
-		//lastChanges.push(convertChangeToBase64(x,y,c));
 		const changes = convertChangeToBase64(x,y,c);
 		if(!changes) return false;
 
@@ -58,8 +98,6 @@ class PixelChanges {
 	 *  tempo perdido esperando a conexão ir e voltar atoa
 	 */
 	static async getChanges(pixelIndex) {
-		//const changesLength = lastChanges.length;
-
 		// Retorna o índice do último save quando solicitado com -1
 		if(pixelIndex <= -1 /*|| index > changesLength*/) {
 
@@ -75,7 +113,6 @@ class PixelChanges {
 			};
 		}
 
-		//const changesLength = await redisClient.STRLEN(KEY_CHANGES);
 		const changesIndex = pixelIndex * 8;
 		
 		// Executar vários comandos usnado pipelining. NÃO É ATÔMICO (https://github.com/redis/node-redis#auto-pipelining)
@@ -86,7 +123,15 @@ class PixelChanges {
 			// Fazendo assim é uma operação atômica, não tem como dar modificações incompletas
 			// (Obs: Apenas a operação sozinha é atômica, o get ali de cima não
 			//  necessariamente foi executados antes)
-			redisClient.GETRANGE(KEY_CHANGES,changesIndex,-1)
+			// Pode ser que o tamanho desse changes seja na ordem de Megabytes, e por isso,
+			// em vez de pegar assim, com -1 indicando que irá obter até o fim da string:
+			// redisClient.GETRANGE(KEY_CHANGES,changesIndex,-1)
+			// vai pegar as modificações assim:
+			redisClient.GETRANGE(KEY_CHANGES,changesIndex,changesIndex+(MAX_CHANGES_RESPONSE*8 -1))
+			// https://redis.io/commands/getrange/
+			// 	'The function handles out of range requests by limiting the resulting range to the actual length of the string.'
+			// O jeito que o GETRANGE funciona é que o index do fim é limitado ao tamanho da string, então
+			// é como se tivesse dizendo 'quero até esse tanto aqui, ou até o fim se passar'
 		]);
 
 		if(!changes) {
@@ -109,8 +154,6 @@ class PixelChanges {
 					error: "Erro interno ao obter as mudanças, tamanho não é múltiplo de 8:"+changes.length
 				};	
 			}
-			//const changes = lastChanges.slice(index,changesLength).join("");
-			//const changes = await redisClient.GETRANGE(KEY_CHANGES,index,changesLength);
 			// A soma de quaiquer dois números divisíveis por 8 será também divisível por 8
 			// se executou até aqui é porque já temos certeza que 'changesIndex' e 'changes.length' é divisível por 8
 			const totalLength = changesIndex + changes.length; 
@@ -126,8 +169,42 @@ class PixelChanges {
 	// Usado para registrar que o index de modificações estava com esse valor quando a imagem foi salva a última vez
 	// Só deve pode chamar este método o pixelSaver, não é algo para o público em geral
 	static async setSavedIndex(pixelIndex) {
-		//savedIndex = index;
 		return await redisClient.SET(KEY_SAVEDINDEX,""+pixelIndex);
+	}
+
+	// Para reiniciar as modificações
+	// A ideia é chamar o resetChanges logo após salvar a imagem
+	// porém desde ter salvo a imagem até agora pode ter acontecido mudanças
+	//
+	// O que este comando faz é então de forma atômica em uma transação:
+	// 1. pega as mudanças desde o último save informado
+	// 2. setá-las como o novo valor
+	// 3. registra o identificador
+	// 4. registra o índice do último save como 0
+	// Só deve pode chamar este método o pixelSaver, não é algo para o público em geral
+	static async resetChanges(trimPixelIndex) {
+		// https://github.com/redis/node-redis/blob/master/docs/isolated-execution.md
+		// https://dev.to/itsvinayak/lua-script-in-redis-using-noderedis-147f
+		// https://redis.io/docs/manual/programmability/eval-intro/
+		// https://redis.io/docs/manual/programmability/lua-api/
+		// Vai usar lua scripts
+		
+		const trimIndex = trimPixelIndex * 8;
+		const newIdentifier = ""+Date.now();
+
+		const status = await redisClient.resetchanges(
+			KEY_CHANGES,
+			KEY_IDENTIFIER,
+			KEY_SAVEDINDEX,
+			trimIndex,
+			newIdentifier,
+			0
+		);
+
+		return {
+			message: status,
+			identifier: newIdentifier
+		};
 	}
 
 }

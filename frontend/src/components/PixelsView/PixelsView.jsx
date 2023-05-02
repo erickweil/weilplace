@@ -26,7 +26,7 @@ export const arraysEqual = (a, b) => {
 
 const PixelsView = (props) => {
 
-	const { pallete, imagemUrl, imagemOffset, notifyCenterPixel, onPlacePixel, options:_options, ...rest } = props
+	const { pallete, notifyCenterPixel, onPlacePixel, options:_options, ...rest } = props
 
     const defaultOptions = {
 		spanButton: "any", // left | middle | right | any
@@ -148,9 +148,7 @@ const PixelsView = (props) => {
 				if(i <= -1) {
 					// Algo muito errado aconteceu. Vamos logar isso.
 					console.log("Retornou %d no changesOffset, erro no servidor?",i);
-				} else if(i < estado.changesOffset || 
-					(estado.changesIdentifier && identifier != estado.changesIdentifier)
-				) {
+				} else if(estado.changesIdentifier !== false && identifier != estado.changesIdentifier) {
 					// Precisa re-carregar a imagem, resetou as mudanças?
 					estado.changesOffset = i;
 					estado.changesIdentifier = identifier;
@@ -160,7 +158,8 @@ const PixelsView = (props) => {
 					// Carregando a imagem depois do changesOffset,
 					// só há chances de re-aplicar mudanças, não tem como faltar nada
 					// (o que não pode ocorrer é carregar primeiro a imagem e depois o changesOffset)
-					carregarImagem(estado,imagemUrl,estado.changesOffset,false);
+					//carregarImagem(estado,imagemUrl,estado.changesOffset,false);
+					doFetchPicture(estado,false);
 				} else if(i == estado.changesOffset) {
 					// faz nada. já ta tudo igual.
 					estado.changesOffset = i;
@@ -190,7 +189,39 @@ const PixelsView = (props) => {
 		});
 	}
 
-	const imagemCarregou = (estado, myImg, url,imagemOffset,centralizar) => {
+	// Pegando a imagem com fetch para ler o Header com o offset das mudanças
+    // Assim é garantido que não faltará nenhum pixel a ser colocado.
+    const doFetchPicture = (estado,centralizar) => { 
+		estado.changesTerminouFetch = false;
+
+		fetch(getApiURL("/picture"),{method:"GET",credentials: 'include'})
+		.then((res) => Promise.all([res,res.blob()]))
+		.then(([res,blob]) => {
+			try {
+				if(!blob) {
+					console.log("Não foi possível carregar a imagem.")
+					return
+				}
+
+				const offset = parseInt(res.headers.get("x-changes-offset"));
+				const identifier = res.headers.get("x-changes-identifier");
+				const imgObjectURL = URL.createObjectURL(blob);
+
+				console.log("Carregou a imagem, offset %d",offset);
+				carregarImagem(estado,imgObjectURL,offset,identifier,centralizar);
+			} finally {
+				estado.changesTerminouFetch = true;
+				estado.changesUltimoFetch = Date.now();
+			}
+		})
+		.catch((error) => {
+			estado.changesTerminouFetch = true;
+			estado.changesUltimoFetch = Date.now();
+			console.log(error);
+		});
+	  }
+
+	const imagemCarregou = (estado, myImg, url, imagemOffset, identifier, centralizar) => {
 		let imgW = myImg.naturalWidth;
 		let imgH = myImg.naturalHeight;
 
@@ -215,6 +246,7 @@ const PixelsView = (props) => {
 			canvasPicture: canvasPicture,
 			canvasPictureOffset: imagemOffset,
 			changesOffset: imagemOffset,
+			changesIdentifier: identifier,
 		});
 
 		if(centralizar) 
@@ -227,10 +259,10 @@ const PixelsView = (props) => {
 		});
 	};
 
-	const carregarImagem = (estado,url,imagemOffset,centralizar) => {
+	const carregarImagem = (estado,url,imagemOffset,identifier,centralizar) => {
 		const myImg = new Image();
 		myImg.onload = () => {
-			imagemCarregou(estado, myImg, url,imagemOffset,centralizar);
+			imagemCarregou(estado, myImg, url,imagemOffset,identifier,centralizar);
 		};
 		myImg.src = url;
 	};
@@ -239,8 +271,8 @@ const PixelsView = (props) => {
 	const myGetInitialState = (estado) => {
 		mesclarEstado(estado, {
 			canvasPicture: false,
-			canvasPictureOffset: imagemOffset,
-			changesOffset: imagemOffset,
+			canvasPictureOffset: -1,
+			changesOffset: -1,
 			changesIdentifier: false,
 			changesTerminouFetch: true,
 			changesUltimoFetch: -1,
@@ -252,15 +284,16 @@ const PixelsView = (props) => {
 		});
 
 		//const pictureResponse = getData("picture", false)
-		carregarImagem(estado,imagemUrl,imagemOffset,true);
+		//carregarImagem(estado,imagemUrl,imagemOffset,true);
+		doFetchPicture(estado,true);
 	};
 
 	const onPropsChange = (estado) => {
-		if(!estado.canvasPicture 
-			|| imagemOffset != estado.canvasPictureOffset)
-        {
-			carregarImagem(estado,imagemUrl,imagemOffset,false);
-		}
+		//if(!estado.canvasPicture 
+		//	|| imagemOffset != estado.canvasPictureOffset)
+        //{
+		//	carregarImagem(estado,imagemUrl,imagemOffset,false);
+		//}
 
 		if(!arraysEqual(estado.pallete,pallete)) {
 			mesclarEstado(estado, {

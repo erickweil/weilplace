@@ -2,7 +2,7 @@
 import cron from "node-cron";
 
 import sharp from "sharp";
-import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PICTURE } from "../config/options.js";
+import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, MAX_CHANGES_RESPONSE, MAX_CHANGES_SIZE, PALLETE, PATH_PICTURE } from "../config/options.js";
 
 import makeFetchCookie from "fetch-cookie";
 import { handlePixelChanges } from "../config/changesProtocol.js";
@@ -11,6 +11,7 @@ const cookieFetch = makeFetchCookie(fetch);
 
 let imgPixelsBuff = false;
 let last_i = -1;
+let last_identifier = false;
 
 class PixelSaver {
 	static async init() {
@@ -50,8 +51,11 @@ class PixelSaver {
 		if(DELAY_CRON_SAVE > 0)
 		{
 			// https://www.npmjs.com/package/node-cron#cron-syntax
-			return cron.schedule("*/"+DELAY_CRON_SAVE+" * * * * *", () => {
-				PixelSaver.automaticSave();
+			return cron.schedule("*/"+DELAY_CRON_SAVE+" * * * * *", async () => {
+				let repeat = true;
+				while(repeat === true) {
+					repeat = await PixelSaver.automaticSave();
+				}
 			});
 		} else return false;
 	}
@@ -119,32 +123,81 @@ class PixelSaver {
 		return await res.json();
 	}
 
-	// Depois isso vai consumir a api via rotas normal, http e tal
+	static async doResetChangesPost(trim_i) {				
+		//PixelChanges.resetChanges(resp.i);
+		const res = await cookieFetch(new URL(API_URL+"/resetchanges"),{
+			method: "POST",
+			body: JSON.stringify({ i:trim_i, secret: API_SHARED_SECRET }),
+			headers: { "Content-Type": "application/json" }
+		});
+		return await res.json();
+	}
+
+	// retorna verdadeiro se precisa repetir logo em seguida
 	static async automaticSave () {
-		if(!imgPixelsBuff) return;
+		if(!imgPixelsBuff) return false;
 
 		try {
 			const resp = await PixelSaver.doChangesGet();
+
+			if(!resp.contents 
+				|| resp.contents.i === undefined 
+				|| resp.contents.identifier === undefined 
+			) {
+				console.log("Erro ao realizar changesGet, resposta sem valores necessários:",resp);
+				return false;
+			}
 			//console.log(resp);
 			const i = parseInt(resp.contents.i);
 			const changes = resp.contents.changes;
+			const identifier = resp.contents.identifier;
+
+			// resetou o stream de mudanças
+			// Tem que ver isso depois
+			if(last_identifier !== false && identifier != last_identifier) {
+				console.log("Atualizou identifier. resetando index");
+				last_i = 0;
+				last_identifier = identifier;
+				return false;
+			}
+
 			if(i != last_i) {
 				last_i = i;
+				last_identifier = identifier;
 
 				if(PixelSaver.applyChangesOnImage(changes)) {
-					console.log("Teve %d pixels modificados, Irá salvar...",changes.length/8);
+					const pixelsModificados = Math.floor(changes.length/8);
+					console.log("Teve %d pixels modificados, Irá salvar...",pixelsModificados);
 
 					if(changes.length % 8 != 0) {
 						console.log("Mudanças com tamanho estranho: %d\n%s",changes.length,changes);
 					}
 
+					// vai repetir para pegar mais modificações que faltaram
+					// PROBLEMA: SE QUANDO REPETIR NÃO TIVER MAIS NADA NÃO SALVA
+					if(pixelsModificados >= MAX_CHANGES_RESPONSE) return true; 
+
 					await PixelSaver.savePicture();
 
-					await PixelSaver.doSetSavedIndexPost(i);
+					// Reseta as modificações se ficou muito grande
+					if(i >= MAX_CHANGES_SIZE) {
+						console.log("Chegou no limite de modificações(i = %d), resetando modificações...",i);
+						const resetresp = await PixelSaver.doResetChangesPost(i);
+
+						last_i = 0;
+						last_identifier = resetresp.identifier;
+						return false;
+					} else {
+						await PixelSaver.doSetSavedIndexPost(i);
+
+						return false;
+					}
 				}
+				else return false;
 			}
 		} catch(e) {
 			console.log("Erro ao carregar mudanças da imagem:",e);
+			return false;
 		}
 	}
 

@@ -14,6 +14,9 @@ class BotPlacer {
 		this.width = _width;
 		this.height = _height;
 		this.pallete = _pallete;
+		this.color = Math.floor(Math.random()*(this.pallete.length-1));
+		this.posx = -1000;
+		this.posy = -1000;
 	}
 
 	async doPixelPost(x,y,c) {				
@@ -26,9 +29,16 @@ class BotPlacer {
 	}
 
 	async randomPlace() {
-		const x = Math.floor(Math.random()*(this.width));
-		const y = Math.floor(Math.random()*(this.height));
-		const c = 0;//Math.floor(Math.random()*(this.pallete.length-1));
+		this.posy = this.posy + 1;
+
+		if(this.posy >= this.height || this.posy < 0) {
+			this.posx = Math.floor(Math.random()*(this.width));
+			this.posy = Math.floor(Math.random()*(this.height));
+		}
+
+		const x = this.posx;
+		const y = this.posy;
+		const c = this.color;
 
 		return await this.doPixelPost(x,y,c);
 	}

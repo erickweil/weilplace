@@ -1,5 +1,5 @@
 // Para testes e alternativa a utilizar o redis
-
+// Apenas utilizado pelo PixelChanges quando é iniciado sem passar um cliente
 class RedisMock {
 	constructor(options) {
 		this.keys = {};
@@ -11,8 +11,9 @@ class RedisMock {
 	}
 
 	async SET(key,value) {
+		let v = this.keys[key];
 		this.keys[key] = value;
-		return true;
+		return v === undefined ? null : v;
 	}
 
 	async APPEND(key,value) {
@@ -21,7 +22,7 @@ class RedisMock {
 			this.keys[key] = value;
 		else
 			this.keys[key] += value; // https://josephmate.github.io/java/javascript/stringbuilder/2020/07/27/javascript-does-not-need-stringbuilder.html
-		return true;
+		return this.keys[key].length;
 	}
 
 	async GETRANGE(key,start,end) {
@@ -34,6 +35,15 @@ class RedisMock {
 			else
 				return v.slice(start,end); 
 		}
+	}
+
+	async resetchanges(key_changes,key_identifier,key_savedindex,trimindex,newidentifier,newsavedindex) {
+		let changes = await this.GETRANGE(key_changes,trimindex,-1);
+		await this.SET(key_changes,changes);
+		await this.SET(key_identifier,newidentifier);
+		await this.SET(key_savedindex,newsavedindex);
+
+		return "OK";
 	}
 }
 
