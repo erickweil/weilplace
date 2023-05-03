@@ -15,6 +15,7 @@ export let REDIS_URL = "";
 export let REDIS_PREFIX = "";
 export let MAX_CHANGES_SIZE = 0;
 export let MAX_CHANGES_RESPONSE = 0;
+export let WEBSOCKET_ENABLED = false;
 
 export let IMAGE_WIDTH = 0;
 export let IMAGE_HEIGHT = 0;
@@ -39,7 +40,8 @@ export const initOptions = () => {
 	REDIS_PREFIX = process.env.REDIS_PREFIX;
 	MAX_CHANGES_SIZE = parseInt(process.env.MAX_CHANGES_SIZE);
 	MAX_CHANGES_RESPONSE = parseInt(process.env.MAX_CHANGES_RESPONSE);
-
+	WEBSOCKET_ENABLED = process.env.WEBSOCKET_ENABLED === "true";
+	
 	const palleteJson = JSON.parse(readFileSync(PATH_PALLETE,"utf8"));
 
 	for(let c of palleteJson.pallete) {

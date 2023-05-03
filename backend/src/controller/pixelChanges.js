@@ -3,13 +3,14 @@ import { readFileSync } from "fs";
 
 import { convertChangeToBase64 } from "../config/changesProtocol.js";
 
-import { MAX_CHANGES_RESPONSE, REDIS_PREFIX } from "../config/options.js";
+import { MAX_CHANGES_RESPONSE, PLACE_DELAY, REDIS_PREFIX } from "../config/options.js";
 import RedisMock from "./redisMock.js";
 import { defineScript } from "redis";
 
 let KEY_IDENTIFIER = "changesid";
 let KEY_SAVEDINDEX = "savedindex";
 let KEY_CHANGES = "changes";
+let KEY_USERTIMES = "usertimes"; // armazena o timestamp da última vez que colocou o pixel
 
 let redisClient = false;
 /** Gerencia as modificações nos pixels
@@ -65,6 +66,7 @@ class PixelChanges {
 			KEY_IDENTIFIER = REDIS_PREFIX+KEY_IDENTIFIER;
 			KEY_SAVEDINDEX = REDIS_PREFIX+KEY_SAVEDINDEX;
 			KEY_CHANGES = REDIS_PREFIX+KEY_CHANGES;
+			KEY_USERTIMES = REDIS_PREFIX+KEY_USERTIMES;
 		}
 
 		const [identifier, savedIndex] =  await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
@@ -80,11 +82,49 @@ class PixelChanges {
 		}
 	}
 
-	static async setPixel(x,y,c) {
-		const changes = convertChangeToBase64(x,y,c);
-		if(!changes) return false;
+	static async setPixel(username,x,y,c) {
+		// Impedir que coloque pixels sem esperar um tempo
+		// Possível problema: Como primeiro pega o tempo e depois seta o pixel,
+		// se mandar requisições simultâneas pode acontecer de setar mais de um pixel devido
+		// à condição de corrida de verificarem ao mesmo tempo?
+		if(PLACE_DELAY > 0)
+		{
+			let timeLastPlaced = await redisClient.HGET(KEY_USERTIMES,username);
+			if(timeLastPlaced === null) timeLastPlaced = "-1";
 
-		return await redisClient.APPEND(KEY_CHANGES, changes);
+			timeLastPlaced = parseInt(timeLastPlaced);
+
+			//let timeLastPlaced = session.lastPlaced || -1;
+
+			if(timeLastPlaced > 0)
+			{
+				let timeElapsed = (Date.now() -  timeLastPlaced);
+
+				// Caso não esperou o suficiente responde com quanto tempo falta em segundos
+				if(timeElapsed < PLACE_DELAY) {
+					return {
+						message: "DELAY",
+						delay: Math.ceil((PLACE_DELAY - timeElapsed)/1000)
+					};
+				}
+			}
+
+			// registra o tempo atual como última vez que colocou pixels
+			//session.lastPlaced = Date.now();
+			await redisClient.HSET(KEY_USERTIMES,username,""+Date.now());
+		}
+
+		const changes = convertChangeToBase64(x,y,c);
+		if(!changes) return {
+			error: "Erro ao converter os valores para base64"
+		};
+
+		await redisClient.APPEND(KEY_CHANGES, changes);
+
+		return {
+			message: "OK",
+			delay: PLACE_DELAY
+		};
 	}
 
 	/** Método que pega as mudanças
@@ -106,6 +146,7 @@ class PixelChanges {
 			const ret = await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
 			// Retorna o id de quando a imagem foi salva a última vez
 			return {
+				message: "OK",
 				identifier: ret[0],
 				i: ret[1]
 			};
@@ -144,6 +185,7 @@ class PixelChanges {
 			// Problema: se o pixelIndex for maior que as mudanças, só irá retornar que está tudo ok
 			// Mas deveria? que situações podem acontecer que causam o pixelIndex ser maior que as mudanças? o identifier resolve todas elas?
 			return {
+				message: "OK",
 				i: pixelIndex, // continua no mesmo index pq n tem mudanças
 				identifier: identifier
 			};
@@ -160,6 +202,7 @@ class PixelChanges {
 			const totalLength = changesIndex + changes.length; 
 			const returnPixelIndex = Math.floor(totalLength/8); // O índice retornado é medido em pixels e não em caracteres
 			return {
+				message: "OK",
 				changes: changes,
 				i: returnPixelIndex,
 				identifier: identifier

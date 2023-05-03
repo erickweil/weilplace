@@ -5,6 +5,7 @@ import CanvasPicture from "./CanvasPicture";
 import { getApiURL } from "@/config/api";
 import { handlePixelChanges } from "@/config/changesProtocol";
 import React, {memo} from 'react'
+import { getSocketInstance } from "@/websocket/websocket";
 
 // https://stackoverflow.com/questions/3115982/how-to-check-if-two-arrays-are-equal-with-javascript
 export const arraysEqual = (a, b) => {
@@ -135,6 +136,11 @@ const PixelsView = (props) => {
 	const doFetchChanges = (estado) => {		
 		estado.changesTerminouFetch = false;
 
+		const webSocket = getSocketInstance();
+		if(webSocket !== null) {
+			console.log("Tem websocket!!!");
+		}
+
 		const url = getApiURL("/changes");
 		url.search =  new URLSearchParams({i:estado.changesOffset});
 		fetch(url,{method:"GET",credentials: 'include'})
@@ -142,9 +148,9 @@ const PixelsView = (props) => {
 		.then((json) => {
 			let delayNextFetch = estado.changesDelayFetch;
 			try {
-				const i = parseInt(json.contents.i);
-				const changes = json.contents.changes;
-				const identifier = json.contents.identifier;
+				const i = parseInt(json.i);
+				const changes = json.changes;
+				const identifier = json.identifier;
 				// Deveria ter um id,hash,seilá para saber que resetou o server
 				// pode acontecer de aplicar mudanças na imagem errada
 				if(i <= -1) {

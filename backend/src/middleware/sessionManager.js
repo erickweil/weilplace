@@ -4,7 +4,7 @@
 import { NOMES } from "../config/options.js";
 
 
-const haiku = () =>{  
+export const haiku = () =>{  
 	const nome = NOMES.nomes[Math.floor(Math.random()*(NOMES.nomes.length-1))];
 	const sobrenome = NOMES.sobrenomes[Math.floor(Math.random()*(NOMES.sobrenomes.length-1))];
 	//console.log("%d nomes e %d sobrenomes, %d possibilidades",NOMES.nomes.length,NOMES.sobrenomes.length,NOMES.nomes.length*NOMES.sobrenomes.length);
@@ -17,7 +17,6 @@ export class SessionManager {
 
 		if(!req.session.username) {	
 			req.session.username = haiku();
-			req.session.lastPlaced = -1;
 		}
 
 		next();

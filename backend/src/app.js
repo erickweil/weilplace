@@ -1,15 +1,17 @@
 import express from "express";
-import * as dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
+import dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
 import cors from "cors";
 import session from "express-session";
 import RedisStore from "connect-redis";
+import http from "http";
 
 import routes from "./routes/index.js";
-import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED, REDIS_PREFIX } from "./config/options.js";
+import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED, REDIS_PREFIX, WEBSOCKET_ENABLED } from "./config/options.js";
 import { SessionManager } from "./middleware/sessionManager.js";
 import PixelChanges from "./controller/pixelChanges.js";
 import { connectToRedis } from "./config/redisConnection.js";
 import PixelSaver from "./service/pixelSaver.js";
+import initWebSocketServer from "./websocket/websocket.js";
 
 dotenv.config();
 
@@ -27,8 +29,11 @@ if(!REDIS_ENABLED) {
 
 const app = express();
 
-// Para servir os arquivos publicos
-//app.use(express.static("public")); -- Não isso está nas rotas
+//initialize a simple http server (Para utilizar websockets precisa fazer assim)
+const server = http.createServer(app);
+
+if(process.env.NODE_ENV != "production") // Apenas durante desenvolvimento para testar
+	app.use(express.static("public"));
 
 // Habilita o CORS para todas as origens
 app.use(cors({
@@ -89,7 +94,12 @@ if(LOG_ROUTES) {
 	});
 }
 
+// Websockets
+if(WEBSOCKET_ENABLED) {
+	const wss = initWebSocketServer(server);
+}
+
 // Passando para o arquivo de rotas o app, que envia junto uma instância do express
 routes(app);
 
-export default app;
+export default server;

@@ -97,10 +97,10 @@ export default function Home() {
 
   const onPlacePixel = useCallback(async () => {
     const resp = await doPixelPost(centerPixelPosRef.current.x, centerPixelPosRef.current.y,colorIndexRef.current);
-    if(!resp || !resp.contents) return;
+    if(!resp) return;
     
-    if(resp.contents.delay != 0) {
-      setplacePixelDelay(prev => (Date.now() + resp.contents.delay * 1000));
+    if(resp.delay !== undefined && resp.delay != 0) {
+      setplacePixelDelay(prev => (Date.now() + resp.delay * 1000));
     }
   }, [colorIndexRef,centerPixelPosRef,setplacePixelDelay]);
 

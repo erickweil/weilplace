@@ -1,6 +1,7 @@
 import express from "express";
 import PixelChanges from "../controller/pixelChanges.js";
 import { API_SHARED_SECRET } from "../config/options.js";
+import { genericRouteHandler } from "../middleware/routeHandler.js";
 
 const router = express.Router();
 
@@ -52,7 +53,7 @@ export const handleResetChanges = async(body) => {
 	};
 };
 
-router.post("/setsavedindex",secretMiddleware, async (req,res) => {
+/*router.post("/setsavedindex",secretMiddleware, async (req,res) => {
 	const resp = await handleSetSavedIndex(req.body);
 	return res.status(resp.status).json(resp.json);
 });
@@ -60,6 +61,9 @@ router.post("/setsavedindex",secretMiddleware, async (req,res) => {
 router.post("/resetchanges",secretMiddleware, async (req,res) => {
 	const resp = await handleResetChanges(req.body);
 	return res.status(resp.status).json(resp.json);
-});
+});*/
+
+router.post("/setsavedindex", secretMiddleware, genericRouteHandler("POST","/setsavedindex",false,handleSetSavedIndex));
+router.post("/resetchanges", secretMiddleware, genericRouteHandler("POST","/resetchanges",false,handleResetChanges));
 
 export default router;

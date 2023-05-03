@@ -65,9 +65,8 @@ class PixelSaver {
 					repeat = await PixelSaver.queryChanges();
 				}
 
-				// ta certo isso? faz sempre salvar a imagem quando inicia o saver
-				// porque o last_i começa com -1
-				if(before_i != last_i) {
+				// Só salva a imagem se houver mudanças
+				if(before_i != -1 && before_i != last_i) {
 					await PixelSaver.automaticSave();
 				}
 			});
@@ -165,17 +164,17 @@ class PixelSaver {
 		try {
 			const resp = await PixelSaver.doChangesGet();
 
-			if(!resp.contents 
-				|| resp.contents.i === undefined 
-				|| resp.contents.identifier === undefined 
+			if(!resp 
+				|| resp.i === undefined 
+				|| resp.identifier === undefined 
 			) {
 				console.log("Erro ao realizar changesGet, resposta sem valores necessários:",resp);
 				return false;
 			}
 			//console.log(resp);
-			const i = parseInt(resp.contents.i);
-			const changes = resp.contents.changes;
-			const identifier = resp.contents.identifier;
+			const i = parseInt(resp.i);
+			const changes = resp.changes;
+			const identifier = resp.identifier;
 
 			// resetou o stream de mudanças
 			// Tem que ver isso depois
