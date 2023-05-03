@@ -9,6 +9,7 @@ import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED
 import { SessionManager } from "./middleware/sessionManager.js";
 import PixelChanges from "./controller/pixelChanges.js";
 import { connectToRedis } from "./config/redisConnection.js";
+import PixelSaver from "./service/pixelSaver.js";
 
 dotenv.config();
 
@@ -17,6 +18,12 @@ initOptions();
 let redisClient = REDIS_ENABLED ?  await connectToRedis(PixelChanges.getLuaScriptsConfig()) : false;
 
 await PixelChanges.init(redisClient);
+
+
+if(!REDIS_ENABLED) {
+	console.log("Iniciando saver na mesma instância já que o redis está desativado...");
+	const cronTask = await PixelSaver.init();
+}
 
 const app = express();
 

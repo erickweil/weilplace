@@ -10,34 +10,56 @@ function isIntStr(value) {
 
 const secretMiddleware = (req,res,next) => {
 	if(!req.body.secret) 
-		return res.sendStatus(404);
+		return res.sendStatus(401);
 
 	const secret = req.body.secret;
 
-	if(secret !== API_SHARED_SECRET) 
-		return res.sendStatus(404);
+	if(secret !== API_SHARED_SECRET)
+		return res.sendStatus(401);
 
 	next();
 };
 
-router.post("/setsavedindex",secretMiddleware, async (req,res) => {
-	if(!isIntStr(req.body.i))
-		return res.sendStatus(404);
+export const handleSetSavedIndex = async (body) => {
+	if(!isIntStr(body.i))
+		return {
+			status: 400,
+			json: {message: "Não especificou o índice"}
+		};
 
-	const index = parseInt(req.body.i);
+	const index = parseInt(body.i);
 	await PixelChanges.setSavedIndex(index);
+
+	return {
+		status: 200,
+		json: {message: "OK"}
+	};
+};
+
+export const handleResetChanges = async(body) => {
+	if(!isIntStr(body.i))
+		return {
+			status: 400,
+			json: {message: "Não especificou o índice"}
+		};
+
+	const index = parseInt(body.i);
+	const resp = await PixelChanges.resetChanges(index);
     
-	return res.status(200).json({ message: "OK" });
+	return {
+		status: 200,
+		json: resp
+	};
+};
+
+router.post("/setsavedindex",secretMiddleware, async (req,res) => {
+	const resp = await handleSetSavedIndex(req.body);
+	return res.status(resp.status).json(resp.json);
 });
 
 router.post("/resetchanges",secretMiddleware, async (req,res) => {
-	if(!isIntStr(req.body.i))
-		return res.sendStatus(404);
-
-	const index = parseInt(req.body.i);
-	const resp = await PixelChanges.resetChanges(index);
-    
-	return res.status(200).json(resp);
+	const resp = await handleResetChanges(req.body);
+	return res.status(resp.status).json(resp.json);
 });
 
 export default router;

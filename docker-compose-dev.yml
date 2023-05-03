@@ -16,9 +16,9 @@ services:
     environment:
       PORT: "3001"
       PATH_PICTURE: "./public/pixels/picture.png"
-      LOG_ROUTES: "false"
-      REDIS_ENABLED: "true"
+      REDIS_ENABLED: "false"
       REDIS_URL: "redis://weilplace-redis:6379"
+      LOG_ROUTES: "true"
       #MAX_CHANGES_RESPONSE: 50
       #MAX_CHANGES_SIZE: 100
     entrypoint: "/bin/sh -c 'npm install && npm run devStart'"
@@ -37,6 +37,8 @@ services:
     environment:
       API_URL: "http://weilplace-server:3001"
       PATH_PICTURE: "./public/pixels/picture.png"
+      REDIS_ENABLED: "false"
+      REDIS_URL: "redis://weilplace-redis:6379"
       #MAX_CHANGES_RESPONSE: 50
       #MAX_CHANGES_SIZE: 100
     entrypoint: "/bin/sh -c 'npm install && npm run devSaver'"
@@ -55,7 +57,7 @@ services:
       - "3000:3000"
     environment:
       API_URL: "http://weilplace-server:3001"
-      PORT: "3000"
+    #  PORT: "3333"
     entrypoint: "/bin/sh -c 'npm install && npm run dev'"
     networks:
       - weilplace

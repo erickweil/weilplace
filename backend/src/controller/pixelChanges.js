@@ -68,7 +68,7 @@ class PixelChanges {
 		}
 
 		const [identifier, savedIndex] =  await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
-		if(!identifier || !savedIndex) {
+		if(!identifier || savedIndex === null) {
 			console.log("Não tinha nada no redis, iniciando com default",identifier,savedIndex);
 			await redisClient.MSET([
 				KEY_SAVEDINDEX,""+0, // index do último save (já está dividido por 8)

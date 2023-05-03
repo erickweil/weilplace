@@ -7,7 +7,7 @@ import PixelsView from '@/components/PixelsView/PixelsView'
 import { getApiURL } from '@/config/api'
 import PalleteColorPicker from '@/components/PalleteColorPicker'
 
-const inter = Inter({ subsets: ['latin'] })
+//const inter = Inter({ subsets: ['latin'] })
 
 const pixelsViewOptions = {
   DEBUG: false
