@@ -21,7 +21,7 @@ const MeuCanvas = props => {
 
     console.log("Criou o MeuCanvas");
 
-    const { draw, everyFrame, events, getInitialState, onPropsChange, options: _options, ...rest } = props
+    const { draw, everyFrame, events, getInitialState, onPropsChange, onDismount, options: _options, ...rest } = props
 
     const defaultOptions = {
         useTouchManager:true,
@@ -31,7 +31,7 @@ const MeuCanvas = props => {
     const options = _options ? {...defaultOptions,..._options} : defaultOptions;
 
 
-    const [doEvent,canvasRef] = CanvasControler(draw, everyFrame,getInitialState, onPropsChange, options)
+    const [doEvent,canvasRef] = CanvasControler(draw, everyFrame,getInitialState, onPropsChange, onDismount, options)
     
     let myListeners = {
         onContextMenu:(e) => {

@@ -1,5 +1,5 @@
 # Para rodar o projeto sem construir a imagem, só mapeando direto mesmo
-version: "3.9"
+version: "3.3"
 services:
   weilplace-server:
     build: 
@@ -16,9 +16,9 @@ services:
     environment:
       PORT: "3001"
       PATH_PICTURE: "./public/pixels/picture.png"
-      REDIS_ENABLED: "false"
+      REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
-      LOG_ROUTES: "true"
+      LOG_ROUTES: "false"
       #MAX_CHANGES_RESPONSE: 50
       #MAX_CHANGES_SIZE: 100
     entrypoint: "/bin/sh -c 'npm install && npm run devStart'"
@@ -37,7 +37,7 @@ services:
     environment:
       API_URL: "http://weilplace-server:3001"
       PATH_PICTURE: "./public/pixels/picture.png"
-      REDIS_ENABLED: "false"
+      REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
       #MAX_CHANGES_RESPONSE: 50
       #MAX_CHANGES_SIZE: 100

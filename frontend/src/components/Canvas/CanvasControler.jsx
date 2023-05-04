@@ -66,7 +66,7 @@ export function pageToCanvas(p,offsetLeft,offsetTop)
 Canvas Controler, handles resizing and animationframe callbacks
 also handles state using useRef only... to prevent re-renders
 */
-const CanvasControler = (draw,everyFrame,getInitialState, onPropsChange, options={}) => {
+const CanvasControler = (draw,everyFrame,getInitialState, onPropsChange, onDismount, options={}) => {
   
   
   //const [estado,setEstado] = useState(null);
@@ -193,6 +193,11 @@ const CanvasControler = (draw,everyFrame,getInitialState, onPropsChange, options
     return () => {
       window.cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", debounceHandleResize);
+
+      if(onDismount) {
+        const estado = getEstado();
+        onDismount(estado);
+      }
     }
   }, [draw]); // Só vai re-chamar o useEffect se o draw mudar.
 
