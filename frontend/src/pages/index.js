@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import PixelsView from '@/components/PixelsView/PixelsView'
 import { getApiURL } from '@/config/api'
 import PalleteColorPicker from '@/components/PalleteColorPicker'
+import { getSocketInstance, requestWebSocket } from '@/config/websocket'
 
 //const inter = Inter({ subsets: ['latin'] })
 
@@ -13,14 +14,29 @@ const pixelsViewOptions = {
   DEBUG: false
 };
 
-export const doPixelPost = async (x,y,c) => {				
-  const res = await fetch(getApiURL("/pixel"),{
-    method: "POST",
-    body: JSON.stringify({x:x, y:y, c:c}),
-    headers: { "Content-Type": "application/json" },
-    credentials: 'include'
-  });
-  return res.json();
+const _lastPixelPost = {x:-1,y:-1,c:-1};
+export const doPixelPost = async (x,y,c) => {
+  if(x == _lastPixelPost.x && y == _lastPixelPost.y && c == _lastPixelPost.c) {
+    return;
+  }
+  
+  _lastPixelPost.x = x;
+  _lastPixelPost.y = y;
+  _lastPixelPost.c = c;
+
+  const socket = getSocketInstance();
+	if(socket !== null) {
+    return await requestWebSocket(socket,"POST","/pixel",{x:x, y:y, c:c});
+  }
+  else {
+    const res = await fetch(getApiURL("/pixel"),{
+      method: "POST",
+      body: JSON.stringify({x:x, y:y, c:c}),
+      headers: { "Content-Type": "application/json" },
+      credentials: 'include'
+    });
+    return res.json();
+  }
 }
 
 export default function Home() {
@@ -69,11 +85,15 @@ export default function Home() {
   }, [setCenterPixelPos]);
 
   const onPlacePixel = useCallback(async () => {
-    const resp = await doPixelPost(centerPixelPosRef.current.x, centerPixelPosRef.current.y,colorIndexRef.current);
-    if(!resp) return;
-    
-    if(resp.delay !== undefined && resp.delay != 0) {
-      setplacePixelDelay(prev => (Date.now() + resp.delay * 1000));
+    try {
+      const resp = await doPixelPost(centerPixelPosRef.current.x, centerPixelPosRef.current.y,colorIndexRef.current);
+      if(!resp) return;
+      
+      if(resp.delay !== undefined && resp.delay != 0) {
+        setplacePixelDelay(prev => (Date.now() + resp.delay * 1000));
+      }
+    } catch (erro) {
+      console.log(erro);
     }
   }, [colorIndexRef,centerPixelPosRef,setplacePixelDelay]);
 

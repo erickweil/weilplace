@@ -1,4 +1,4 @@
-import { getSocketInstance, registerWebSocketListener, removeWebSocketListener } from "@/config/websocket";
+import { getSocketInstance, registerWebSocketListener, removeWebSocketListener, requestWebSocket } from "@/config/websocket";
 import { getApiURL } from "@/config/api";
 import { handlePixelChanges } from "@/config/changesProtocol";
 import { mesclarEstado } from "../Canvas/CanvasControler";
@@ -93,11 +93,20 @@ export const doFetchChanges = (estado,force) => {
 
         registerWebSocketListeners(webSocket,estado);
         if(force) {
-            // POSSÍVEL PROBLEMA: Tem que fazer um jeito de pegar o erro de timeout dessa chamada
+            /*// POSSÍVEL PROBLEMA: Tem que fazer um jeito de pegar o erro de timeout dessa chamada
             webSocket.send(JSON.stringify({
                 get: "/changes",
                 i: estado.changesOffset
-            }));
+            }));*/
+
+            
+            requestWebSocket(webSocket,"GET","/changes",{i: estado.changesOffset})
+            .then((json) => {
+                onFetchChangesResponse(estado,json);
+            })
+            .catch((error) => {
+                onFetchChangesError(estado,error);
+            });
         } else {
 
             // Não precisa fazer requisição, só garantir que está registrado o listener

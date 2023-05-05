@@ -54,6 +54,7 @@ const onConnection = (wss,ws) => {
 		if(resp.status == 200) {
 			ws.send(JSON.stringify({
 				[json.post ? "post" : "get"]: route,
+				_id: json._id ? json._id : -1, // responde de volta o id da requisição
 				...resp.json
 			}));
 		} else {
