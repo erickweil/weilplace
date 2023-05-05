@@ -15,11 +15,11 @@ spec:
       labels:
         io.kompose.service: weilplace-site
     spec:
+      imagePullSecrets:
+      - name: regcred
       containers:
         - name: weilplace-site
           image: registry.fslab.dev/erickweil/weilplace-site:latest
-          imagePullSecrets:
-          - name: regcred
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

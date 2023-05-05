@@ -81,11 +81,11 @@ spec:
       labels:
         io.kompose.service: weilplace-api
     spec:
+      imagePullSecrets:
+      - name: regcred
       containers:
         - name: weilplace-api
           image: registry.fslab.dev/erickweil/weilplace-api:latest
-          imagePullSecrets:
-          - name: regcred
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -134,13 +134,13 @@ spec:
       labels:
         io.kompose.service: weilplace-pixelsaver
     spec:
+      imagePullSecrets:
+      - name: regcred
       containers:
         - name: weilplace-pixelsaver
           args:
             - service_pixelsaver.js
           image: registry.fslab.dev/erickweil/weilplace-api:latest
-          imagePullSecrets:
-          - name: regcred
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
