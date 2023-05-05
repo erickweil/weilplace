@@ -4,7 +4,7 @@
   "description": "Backend do WeilPlace",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Depois irei fazer os testes\"",
     "devStart": "nodemon -L server.js",
     "devSaver": "nodemon -L service_pixelsaver.js",
     "start": "node server.js",

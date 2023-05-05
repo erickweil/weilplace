@@ -14,10 +14,20 @@ stages:
 .base-rules:
   # https://how-to.dev/how-to-set-up-monorepo-build-in-gitlab-ci
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      allow_failure: false
       when: always
-    - when: manual
-      allow_failure: true
+    - when: never
+
+.merge-test-rules:
+  # https://how-to.dev/how-to-set-up-monorepo-build-in-gitlab-ci
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+      allow_failure: false
+      when: always
+    - when: never
 
 .desativado:
   rules:
@@ -28,8 +38,6 @@ stages:
 test-weilplace:
   stage: test
   extends: .base-rules
-  rules:
-    - allow_failure: false
   variables:
   # Para não precisar clonar
     GIT_STRATEGY: none
@@ -44,13 +52,34 @@ test-weilplace:
     - echo $IMG_WEILPLACE_SITE
     - echo "Primeira linha da configuração kubectl"
     - head -n1 $KUBECTL_CONFIG
+    - echo $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+merge-test-backend:
+  image: node:alpine
+  stage: test
+  extends: .merge-test-rules
+  needs: []
+  script:
+    - mv ./backend/.env.example ./backend/.env
+    - cd ./backend
+    - npm install
+    - npm run test
+
+merge-test-frontend:
+  image: node:alpine
+  stage: test
+  extends: .merge-test-rules
+  needs: []
+  script:
+    - mv ./backend/.env.example ./backend/.env
+    - cd ./backend
+    - npm install
+    - npm run test
 
 # https://blog.callr.tech/building-docker-images-with-gitlab-ci-best-practices/
 # https://jsramblings.com/three-ways-to-reuse-commands-across-gitlab-jobs/
 .build-docker:
   extends: .base-rules
-  rules:
-    - allow_failure: false
   stage: publish
   
   # Use this if your GitLab runner does not use socket binding
@@ -98,6 +127,7 @@ build-weilplace-api:
     TAG_COMMIT: $IMG_WEILPLACE_API:$CI_COMMIT_SHORT_SHA
   before_script:
     - mv ./backend/.env.example ./backend/.env
+    # Não tá legal, a imagem com secret?
     - echo "SESSION_SECRET=\"$SESSION_SECRET\"" >> ./backend/.env
     - echo "API_SHARED_SECRET=\"$API_SHARED_SECRET\"" >> ./backend/.env
 
@@ -114,8 +144,6 @@ build-weilplace-site:
 # https://juju.is/tutorials/using-gitlab-as-a-container-registry#7-pull-your-container
 deploy-weilplace:
   extends: .base-rules
-  rules:
-    - allow_failure: false
   needs: ["build-weilplace-site","build-weilplace-api"]
   
   stage: deploy
