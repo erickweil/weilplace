@@ -106,8 +106,8 @@ build-weilplace-site:
   needs: ["test-weilplace"]
   variables:
     BUILD_DIR: "./frontend"
-    TAG_LATEST: $IMG_WEILPLACE_API:latest
-    TAG_COMMIT: $IMG_WEILPLACE_API:$CI_COMMIT_SHORT_SHA
+    TAG_LATEST: $IMG_WEILPLACE_SITE:latest
+    TAG_COMMIT: $IMG_WEILPLACE_SITE:$CI_COMMIT_SHORT_SHA
   before_script:
     - mv ./frontend/.env.production ./frontend/.env.local
 
