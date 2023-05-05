@@ -1,6 +1,6 @@
 variables:
-  IMG_WEILPLACE_API: $CI_REGISTRY/$GITLAB_USER_LOGIN/weilplace-api
-  IMG_WEILPLACE_SITE: $CI_REGISTRY/$GITLAB_USER_LOGIN/weilplace-site
+  IMG_WEILPLACE_API: registry.fslab.dev/erickweil/weilplace-api
+  IMG_WEILPLACE_SITE: registry.fslab.dev/erickweil/weilplace-site
   #TAG_COMMIT: $CI_REGISTRY/$GITLAB_USER_LOGIN/nodejs-exemplo:$CI_COMMIT_SHORT_SHA
   KUBECTL_CONFIG: $KUBECTL_CONFIG
   API_SHARED_SECRET: $API_SHARED_SECRET
@@ -16,10 +16,6 @@ stages:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: never
-    - if: $CI_COMMIT_TAG
-      when: never
     - when: manual
       allow_failure: true
 
