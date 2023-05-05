@@ -1,4 +1,4 @@
-include: '/templates/padrao-template.yml'
+include: '/templates/padrao.template.yml'
 
 variables:
   IMG_WEILPLACE_API: registry.fslab.dev/erickweil/weilplace-api
