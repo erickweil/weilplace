@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
 import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PALLETE, PATH_PICTURE, PLACE_DELAY } from "../config/options.js";
+import { genericRouteHandler } from "../middleware/routeHandler.js";
 
 const router = express.Router();
 
@@ -25,51 +26,22 @@ export const handlePostPixel = async (body,session) => {
 	const coord_y = parseIntBounded(body.y,0,IMAGE_HEIGHT-1);
 
 	const color = parseIntBounded(body.c,0,PALLETE.length-1);
-
-	// Impedir que coloque pixels sem esperar um tempo
-	if(PLACE_DELAY > 0)
-	{
-		let timeLastPlaced = session.lastPlaced || -1;
-
-		if(timeLastPlaced > 0 )
-		{
-			let timeElapsed = (Date.now() -  timeLastPlaced);
-
-			// Caso não esperou o suficiente responde com quanto tempo falta em segundos
-			if(timeElapsed < PLACE_DELAY) {
-				return {
-					status:200,
-					json: {message: "DELAY", contents: {delay: Math.ceil((PLACE_DELAY - timeElapsed)/1000)}}
-				};
-			}
-		}
-
-		// registra o tempo atual como última vez que colocou pixels
-		session.lastPlaced = Date.now();
-	}
-
 	
-	const resp = await PixelChanges.setPixel(coord_x,coord_y,color);
-	if(resp === false) {
-		console.log("Não foi possível setar o pixel");
+	const username = session.username;
+
+	const resp = await PixelChanges.setPixel(username,coord_x,coord_y,color);
+	
+	if(resp.error) {
+		console.log(resp.error);
 		return {
 			status: 500,
-			json: {message: "Não foi possível setar o pixel"}
+			json: resp
 		};
 	}
 
-	/*// Para testar X16
-	for(let _x=0;_x<4;_x++) for(let _y=0;_y<4;_y++) {
-		
-		await PixelChanges.setPixel(
-			Math.max(0,Math.min(coord_x+_x,IMAGE_WIDTH-1)),
-			Math.max(0,Math.min(coord_y+_y,IMAGE_HEIGHT-1)),
-			color);
-	}*/
-
 	return {
 		status: 200,
-		json: { message: "OK", contents: {delay: Math.ceil(PLACE_DELAY/1000)} }
+		json: resp
 	};
 };
 
@@ -88,11 +60,11 @@ export const handleGetChanges = async (query) => {
     
 	return {
 		status: 200,
-		json: {message: "OK", contents: resp}
+		json: resp
 	};
 };
 
-router.post("/pixel", async (req,res) => {
+/*router.post("/pixel", async (req,res) => {
 	const resp = await handlePostPixel(req.body,req.session);
 	return res.status(resp.status).json(resp.json);
 });
@@ -100,7 +72,10 @@ router.post("/pixel", async (req,res) => {
 router.get("/changes", async (req,res) => {
 	const resp = await handleGetChanges(req.query,req.session);
 	return res.status(resp.status).json(resp.json);
-});
+});*/
+
+router.post("/pixel", genericRouteHandler("POST","/pixel",true,handlePostPixel));
+router.get("/changes", genericRouteHandler("GET","/changes",true,handleGetChanges));
 
 router.get("/picture", async (req,res) => {
 	

@@ -7,38 +7,11 @@ import PixelsView from '@/components/PixelsView/PixelsView'
 import { getApiURL } from '@/config/api'
 import PalleteColorPicker from '@/components/PalleteColorPicker'
 
-const inter = Inter({ subsets: ['latin'] })
+//const inter = Inter({ subsets: ['latin'] })
 
 const pixelsViewOptions = {
   DEBUG: false
 };
-
-
-export const setFetchData = (data,key,content,loaded) => {
-    const newData = {};
-    newData[key] = {loaded:loaded,content:content};
-    
-    // Fazendo assim para caso se dois UseEffect realizarem o 
-    // setData ao mesmo tempo, vão concordar nos valores.
-    // 
-    // Tem que lembrar que o setData do UseState é assíncrono,
-    // e também só realmente entende que mudou algo se for setado
-    // um objeto *diferente*.
-    //
-    // Devido a essas razões, é necessário mutar o próprio objeto do
-    // estado primeiro, para chamadas subsequentes funcionarem com
-    // os valores atualizados, e ao setar o objeto do estado é necessário
-    // que seja um novo objeto (com spread operator para criar ele). 
-    Object.assign(data,newData);
-    //setData({...data});
-    return {...data};
-}
-
-export const getData = (data,key,default_value) => {
-  if(!data || !data[key] || data[key].content === undefined) return default_value;
-
-  return data[key].content;
-}
 
 export const doPixelPost = async (x,y,c) => {				
   const res = await fetch(getApiURL("/pixel"),{
@@ -54,7 +27,7 @@ export default function Home() {
   console.log("Executou Home() Is SSR? -->", typeof window === "undefined");
 
   // https://nextjs.org/docs/basic-features/data-fetching/client-side
-  const [data, setData] = useState({})
+  const [pallete, setPallete] = useState(false);
 
   const [centerPixelPos, setCenterPixelPos] = useState({x:0,y:0});
   const centerPixelPosRef = useRef(centerPixelPos);
@@ -78,7 +51,7 @@ export default function Home() {
           console.log("Não foi possível carregar a palleta de cores.")
           return
         }
-        setData(data => setFetchData(data,"pallete",json.pallete,true));
+        setPallete(json.pallete);
       });
     }
 
@@ -97,14 +70,13 @@ export default function Home() {
 
   const onPlacePixel = useCallback(async () => {
     const resp = await doPixelPost(centerPixelPosRef.current.x, centerPixelPosRef.current.y,colorIndexRef.current);
-    if(!resp || !resp.contents) return;
+    if(!resp) return;
     
-    if(resp.contents.delay != 0) {
-      setplacePixelDelay(prev => (Date.now() + resp.contents.delay * 1000));
+    if(resp.delay !== undefined && resp.delay != 0) {
+      setplacePixelDelay(prev => (Date.now() + resp.delay * 1000));
     }
   }, [colorIndexRef,centerPixelPosRef,setplacePixelDelay]);
 
-  const pallete = getData(data,"pallete",[]);
   return (
     <>
       <Head>
@@ -117,17 +89,20 @@ export default function Home() {
       </Head>
       <NonSSRWrapper>
 
-      <PixelsView
-      // Muito cuidado com os props desse componente
-      // Tem que ser valores que NÃO IRÃO MUDAR quando o componente atualizar qualquer coisinha
-      // qualquer callback tem que usar o useCallback para não ser um objeto diferente cada vez
-      // Não que irá parar de funcionar mas fica muito lento se fizer redraw a cada frame por exemplo (tipo muito lento mesmo completamente atoa)
-       
-        pallete={pallete} 
-        options={pixelsViewOptions}
-        notifyCenterPixel={notifyCenterPixel}
-        onPlacePixel={onPlacePixel}
-      />
+      { 
+        pallete === false ? <p>Carregando...</p> :
+        <PixelsView
+        // Muito cuidado com os props desse componente
+        // Tem que ser valores que NÃO IRÃO MUDAR quando o componente atualizar qualquer coisinha
+        // qualquer callback tem que usar o useCallback para não ser um objeto diferente cada vez
+        // Não que irá parar de funcionar mas fica muito lento se fizer redraw a cada frame por exemplo (tipo muito lento mesmo completamente atoa)
+        
+          pallete={pallete} 
+          options={pixelsViewOptions}
+          notifyCenterPixel={notifyCenterPixel}
+          onPlacePixel={onPlacePixel}
+        />
+      }
       
       <PalleteColorPicker
         timeToPlaceAgain={placePixelDelay}

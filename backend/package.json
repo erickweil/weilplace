@@ -4,7 +4,7 @@
   "description": "Backend do WeilPlace",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Depois irei fazer os testes\"",
     "devStart": "nodemon -L server.js",
     "devSaver": "nodemon -L service_pixelsaver.js",
     "start": "node server.js",
@@ -29,11 +29,16 @@
     "node-cron": "^3.0.2",
     "nodemon": "^2.0.22",
     "redis": "^4.6.6",
-    "sharp": "^0.32.0"
+    "sharp": "^0.32.0",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "eslint": "^8.39.0",
     "eslint-plugin-import": "^2.27.5"
   },
-  "type": "module"
+  "type": "module",
+  "optionalDependencies": {
+    "bufferutil": "^4.0.7",
+    "utf-8-validate": "^6.0.3"
+  }
 }
