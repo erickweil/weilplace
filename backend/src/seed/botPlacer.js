@@ -29,8 +29,9 @@ class BotPlacer {
 	}
 
 	async randomPlace() {
-		this.posx = this.posx + (Math.floor(Math.random()*3) - 1);
-		this.posy = this.posy + (Math.floor(Math.random()*3) - 1);
+		//this.posx = this.posx + (Math.floor(Math.random()*3) - 1);
+		//this.posy = this.posy + (Math.floor(Math.random()*3) - 1);
+		this.posy = this.posy - 1;
 
 		if( this.posy >= this.height || this.posy < 0 ||
 			this.posx >= this.width || this.posx < 0) {

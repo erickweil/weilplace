@@ -76,7 +76,7 @@ export function doZoomWithCenter(estado,newScale,center)
 const ZoomableCanvas = (props) => {
 
     console.log("Criou o ZoomableCanvas");
-    const { uidraw, draw, everyFrame, events, getInitialState, onPropsChange, options:_options, ...rest } = props
+    const { uidraw, draw, everyFrame, events, getInitialState, onPropsChange, onDismount, options:_options, ...rest } = props
 
     const defaultOptions = {
         DEBUG: false,
@@ -394,6 +394,7 @@ const ZoomableCanvas = (props) => {
     draw={mydraw}
     everyFrame={everyFrame}
     getInitialState={myGetInitialState}
+    onDismount={onDismount}
     onPropsChange={onPropsChange}
     events={myListeners}
     options={options} />;

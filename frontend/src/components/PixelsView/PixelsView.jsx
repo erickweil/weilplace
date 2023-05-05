@@ -2,9 +2,9 @@ import ZoomableCanvas, { doZoomWithCenter, pageToZoomCanvas } from "../Canvas/Zo
 import NextImage from 'next/image'
 import { mesclarEstado } from '@/components/Canvas/CanvasControler'
 import CanvasPicture from "./CanvasPicture";
-import { getApiURL } from "@/config/api";
-import { handlePixelChanges } from "@/config/changesProtocol";
-import React, {memo} from 'react'
+import React, {memo, useEffect} from 'react'
+import { doFetchChanges, doFetchPicture, registerWebSocketListeners, removeWebSocketListeners } from "./FetchHandler";
+import { getSocketInstance } from "@/config/websocket";
 
 // https://stackoverflow.com/questions/3115982/how-to-check-if-two-arrays-are-equal-with-javascript
 export const arraysEqual = (a, b) => {
@@ -115,7 +115,7 @@ const PixelsView = (props) => {
 			let agora = Date.now();
 			let diferenca = agora - estado.changesUltimoFetch;
 			if(diferenca > estado.changesDelayFetch) {
-				doFetchChanges(estado);
+				doFetchChanges(estado,false);
 				return false; // Não causa redraw
 			}
 			else
@@ -128,149 +128,10 @@ const PixelsView = (props) => {
 			}
 		} else {
 			// esperando terminar fetch
-			return false; // Não causa redraw
+			if(estado.changesNeedsRedraw)
+			return { changesNeedsRedraw: false }
+			else return false
 		}
-	};
-
-	const doFetchChanges = (estado) => {		
-		estado.changesTerminouFetch = false;
-
-		const url = getApiURL("/changes");
-		url.search =  new URLSearchParams({i:estado.changesOffset});
-		fetch(url,{method:"GET",credentials: 'include'})
-		.then((res) => res.json())
-		.then((json) => {
-			let delayNextFetch = estado.changesDelayFetch;
-			try {
-				const i = parseInt(json.contents.i);
-				const changes = json.contents.changes;
-				const identifier = json.contents.identifier;
-				// Deveria ter um id,hash,seilá para saber que resetou o server
-				// pode acontecer de aplicar mudanças na imagem errada
-				if(i <= -1) {
-					// Algo muito errado aconteceu. Vamos logar isso.
-					console.log("Retornou %d no changesOffset, erro no servidor?",i);
-				} else if(estado.changesIdentifier !== false && identifier != estado.changesIdentifier) {
-					// Precisa re-carregar a imagem, resetou as mudanças?
-					estado.changesOffset = i;
-					estado.changesIdentifier = identifier;
-
-					console.log("Resetou a imagem? i:%d, identifier:%s",i,identifier);
-
-					// Carregando a imagem depois do changesOffset,
-					// só há chances de re-aplicar mudanças, não tem como faltar nada
-					// (o que não pode ocorrer é carregar primeiro a imagem e depois o changesOffset)
-					//carregarImagem(estado,imagemUrl,estado.changesOffset,false);
-					doFetchPicture(estado,false);
-				} else if(i == estado.changesOffset) {
-					// faz nada. já ta tudo igual.
-					estado.changesOffset = i;
-					estado.changesIdentifier = identifier;
-				} else if(i > estado.changesOffset) {
-					estado.changesOffset = i;
-					estado.changesIdentifier = identifier;
-
-					// registra que precisa re-desenhar se houver mudanças.
-					estado.changesNeedsRedraw = handlePixelChanges(changes,estado.pallete,
-					(hexColor,x,y) => {
-						estado.canvasPicture.drawPixel(hexColor,x,y);
-					});
-
-					if(estado.changesNeedsRedraw) {
-						delayNextFetch = estado.changesDelayFastFetch;
-					}
-				}
-			} catch(e) {
-				console.log("Erro ao carregar mudanças da imagem:",e);
-			} finally {
-				estado.changesTerminouFetch = true;
-				estado.changesUltimoFetch = Date.now() - (estado.changesDelayFetch-delayNextFetch);
-			}
-		})
-		.catch((error) => {
-			estado.changesTerminouFetch = true;
-			estado.changesUltimoFetch = Date.now();
-
-			console.log(error);
-		});
-	}
-
-	// Pegando a imagem com fetch para ler o Header com o offset das mudanças
-    // Assim é garantido que não faltará nenhum pixel a ser colocado.
-    const doFetchPicture = (estado,centralizar) => { 
-		estado.changesTerminouFetch = false;
-
-		fetch(getApiURL("/picture"),{method:"GET",credentials: 'include'})
-		.then((res) => Promise.all([res,res.blob()]))
-		.then(([res,blob]) => {
-			try {
-				if(!blob) {
-					console.log("Não foi possível carregar a imagem.")
-					return
-				}
-
-				const offset = parseInt(res.headers.get("x-changes-offset"));
-				const identifier = res.headers.get("x-changes-identifier");
-				const imgObjectURL = URL.createObjectURL(blob);
-
-				console.log("Carregou a imagem, offset %d",offset);
-				carregarImagem(estado,imgObjectURL,offset,identifier,centralizar);
-			} finally {
-				estado.changesTerminouFetch = true;
-				estado.changesUltimoFetch = Date.now();
-			}
-		})
-		.catch((error) => {
-			estado.changesTerminouFetch = true;
-			estado.changesUltimoFetch = Date.now();
-			console.log(error);
-		});
-	  }
-
-	const imagemCarregou = (estado, myImg, url, imagemOffset, identifier, centralizar) => {
-		let imgW = myImg.naturalWidth;
-		let imgH = myImg.naturalHeight;
-
-		const W = estado.width;
-		const H = estado.height;
-
-		//if (imgW > W)
-		//if (imgH > H)
-		let scaleX = W / imgW;
-		let scaleY = H / imgH;
-
-		let scale = scaleY;
-		if (scaleX < scaleY)
-			scale = scaleX;
-
-		if (!scale)
-			scale = 1;
-
-		const canvasPicture = new CanvasPicture({x:0,y:0},myImg,imgW,imgH);
-
-		mesclarEstado(estado, {
-			canvasPicture: canvasPicture,
-			canvasPictureOffset: imagemOffset,
-			changesOffset: imagemOffset,
-			changesIdentifier: identifier,
-		});
-
-		if(centralizar) 
-		mesclarEstado(estado, {
-			scale: scale,
-			span: {
-				x: -((W / 2 - (imgW / 2 * scale)) / scale),
-				y: 0,
-			}
-		});
-	};
-
-	const carregarImagem = (estado,url,imagemOffset,identifier,centralizar) => {
-		const myImg = new Image();
-		myImg.onload = () => {
-			imagemCarregou(estado, myImg, url,imagemOffset,identifier,centralizar);
-		};
-		myImg.src = url;
 	};
 
 	// Não é o jeito certo? idaí?
@@ -290,6 +151,10 @@ const PixelsView = (props) => {
 			targetPixel: false
 		});
 
+		const socket = getSocketInstance();
+		if(socket !== null)
+		registerWebSocketListeners(socket,estado);
+
 		//const pictureResponse = getData("picture", false)
 		//carregarImagem(estado,imagemUrl,imagemOffset,true);
 		doFetchPicture(estado,true);
@@ -301,6 +166,10 @@ const PixelsView = (props) => {
         //{
 		//	carregarImagem(estado,imagemUrl,imagemOffset,false);
 		//}
+
+		const socket = getSocketInstance();
+		if(socket !== null)
+		registerWebSocketListeners(socket,estado);
 
 		if(!arraysEqual(estado.pallete,pallete)) {
 			mesclarEstado(estado, {
@@ -324,6 +193,11 @@ const PixelsView = (props) => {
         }
     };
 
+	// https://dev.to/otamnitram/react-useeffect-cleanup-how-and-when-to-use-it-2hbm
+	const onDismount = (estado) => {
+		console.log("onDismount PixelsView");
+		removeWebSocketListeners(estado);
+	};
 
 	return (
 		<ZoomableCanvas
@@ -331,7 +205,7 @@ const PixelsView = (props) => {
 			onPropsChange={onPropsChange}
 			draw={mydraw}
 			options={options}
-			
+			onDismount={onDismount}
 			everyFrame={everyFrame}
 			events={{
 				onClick: onClick,

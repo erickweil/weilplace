@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="estilos.css">
+			
+	<title>Teste Websockets</title>
+</head>
+<body>
+	<ul class="topo" id="barratopo">
+		<li class="col right">
+			<a>BEM VINDO</a>
+		</li>
+	</ul>
+	<div align="center">
+		<h1>Olá</h1>
+
+		<hr/>
+		<form id="msg-form" method="post" action="">
+			<fieldset style="min-width: 600px;" >
+				<legend> Mensagens </legend>
+				
+				<p> Envie e receba mensagens </p>
+				
+				<div class="formln">
+					<label>Mensagem</label>
+					<textarea  id="msg-content" name="msg">{"get":"/changes","i":0}</textarea>
+				</div>
+				<div class="formln">
+					<input class="submit" type="submit" value="Enviar"/>
+				</div>
+
+				<div class="formln">
+					<label>Resposta</label>
+					<textarea readonly id="msg-resp" name="msg-resp"></textarea>
+				</div>
+			</fieldset>
+		</form>
+	</div>
+
+	<script type="module" src="index.js"></script>
+</body>
+</html>

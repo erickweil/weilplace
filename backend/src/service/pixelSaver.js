@@ -2,12 +2,17 @@
 import cron from "node-cron";
 
 import sharp from "sharp";
-import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, MAX_CHANGES_RESPONSE, MAX_CHANGES_SIZE, PALLETE, PATH_PICTURE } from "../config/options.js";
-
+import { copyFile } from "fs";
 import makeFetchCookie from "fetch-cookie";
-import { handlePixelChanges } from "../config/changesProtocol.js";
 
-const cookieFetch = makeFetchCookie(fetch);
+import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, MAX_CHANGES_RESPONSE, MAX_CHANGES_SIZE, PALLETE, PATH_PICTURE, REDIS_ENABLED, SAVE_HISTORY } from "../config/options.js";
+import { handlePixelChanges } from "../config/changesProtocol.js";
+import { handleGetChanges } from "../routes/pixelsRoutes.js";
+import { handleResetChanges, handleSetSavedIndex } from "../routes/privateRoutes.js";
+// desativado usar fetch, mas mantido aqui apenas por questão de 'vai que'
+const USE_FETCH = false;
+
+const cookieFetch = USE_FETCH ? makeFetchCookie(fetch) : false;
 
 let imgPixelsBuff = false;
 let last_i = -1;
@@ -52,9 +57,17 @@ class PixelSaver {
 		{
 			// https://www.npmjs.com/package/node-cron#cron-syntax
 			return cron.schedule("*/"+DELAY_CRON_SAVE+" * * * * *", async () => {
+				if(!imgPixelsBuff) return;
+
 				let repeat = true;
+				let before_i = last_i;
 				while(repeat === true) {
-					repeat = await PixelSaver.automaticSave();
+					repeat = await PixelSaver.queryChanges();
+				}
+
+				// Só salva a imagem se houver mudanças
+				if(before_i != -1 && before_i != last_i) {
+					await PixelSaver.automaticSave();
 				}
 			});
 		} else return false;
@@ -91,10 +104,31 @@ class PixelSaver {
 				}
 			}
 		).png().toFile(PATH_PICTURE);
+
+		if(SAVE_HISTORY)
+		{
+			// https://stackoverflow.com/questions/4402934/javascript-time-and-date-getting-the-current-minute-hour-day-week-month-y
+			const now = new Date();
+
+			const second = now.getSeconds();
+			const minute = now.getMinutes();
+			const hour = now.getHours();
+
+			const year = now.getFullYear();
+			const month = now.getMonth()+1; // beware: January = 0; February = 1, etc.
+			const day = now.getDate();
+
+			const pathWithoutExtension = PATH_PICTURE.substring(0, PATH_PICTURE.lastIndexOf(".")) || PATH_PICTURE;
+			const extension =  PATH_PICTURE.substring(PATH_PICTURE.lastIndexOf(".")+1);
+			const path2 = pathWithoutExtension+"_"+year+"-"+month+"-"+day+" "+hour+"."+minute+"."+second+"."+extension;
+
+			copyFile(PATH_PICTURE,path2,(err) => {
+				if(err) throw err;
+			});
+		}
 	}
 
 	static applyChangesOnImage(changes) {
-
 		return handlePixelChanges(
 			changes,
 			PALLETE,
@@ -104,53 +138,65 @@ class PixelSaver {
 		);
 	}
 
-	static async doChangesGet() {
-		//const resp = PixelChanges.getChanges(last_i);
-		
-		const url = new URL(API_URL+"/changes");
-		url.search =  new URLSearchParams({i:last_i});
-		const res = await cookieFetch(url,{method:"GET"});
-		return await res.json();
+	static async doChangesGet() {		
+		if(!USE_FETCH) {
+			const res = await handleGetChanges({i:""+last_i});
+			if(res.status == 200) return res.json;
+			else throw new Error("Não foi possível completar a requisição:"+res);
+		} else {
+			const url = new URL(API_URL+"/changes");
+			url.search =  new URLSearchParams({i:last_i});
+			const res = await cookieFetch(url,{method:"GET"});
+			return await res.json();
+		}
 	}
 
-	static async doSetSavedIndexPost(saved_i) {				
-		//PixelChanges.setSavedIndex(resp.i);
-		const res = await cookieFetch(new URL(API_URL+"/setsavedindex"),{
-			method: "POST",
-			body: JSON.stringify({ i:saved_i, secret: API_SHARED_SECRET }),
-			headers: { "Content-Type": "application/json" }
-		});
-		return await res.json();
+	static async doSetSavedIndexPost(saved_i) {
+		if(!USE_FETCH) {
+			const res = await handleSetSavedIndex({i:""+saved_i});
+			if(res.status == 200) return res.json;
+			else throw new Error("Não foi possível completar a requisição:"+res);
+		} else {
+			const res = await cookieFetch(new URL(API_URL+"/setsavedindex"),{
+				method: "POST",
+				body: JSON.stringify({ i:saved_i, secret: API_SHARED_SECRET }),
+				headers: { "Content-Type": "application/json" }
+			});
+			return await res.json();
+		}
 	}
 
-	static async doResetChangesPost(trim_i) {				
-		//PixelChanges.resetChanges(resp.i);
-		const res = await cookieFetch(new URL(API_URL+"/resetchanges"),{
-			method: "POST",
-			body: JSON.stringify({ i:trim_i, secret: API_SHARED_SECRET }),
-			headers: { "Content-Type": "application/json" }
-		});
-		return await res.json();
+	static async doResetChangesPost(trim_i) {
+		if(!USE_FETCH) {
+			const res = await handleResetChanges({i:""+trim_i});
+			if(res.status == 200) return res.json;
+			else throw new Error("Não foi possível completar a requisição:"+res);
+		} else {
+			const res = await cookieFetch(new URL(API_URL+"/resetchanges"),{
+				method: "POST",
+				body: JSON.stringify({ i:trim_i, secret: API_SHARED_SECRET }),
+				headers: { "Content-Type": "application/json" }
+			});
+			return await res.json();
+		}
 	}
 
 	// retorna verdadeiro se precisa repetir logo em seguida
-	static async automaticSave () {
-		if(!imgPixelsBuff) return false;
-
+	static async queryChanges () {
 		try {
 			const resp = await PixelSaver.doChangesGet();
 
-			if(!resp.contents 
-				|| resp.contents.i === undefined 
-				|| resp.contents.identifier === undefined 
+			if(!resp 
+				|| resp.i === undefined 
+				|| resp.identifier === undefined 
 			) {
 				console.log("Erro ao realizar changesGet, resposta sem valores necessários:",resp);
 				return false;
 			}
 			//console.log(resp);
-			const i = parseInt(resp.contents.i);
-			const changes = resp.contents.changes;
-			const identifier = resp.contents.identifier;
+			const i = parseInt(resp.i);
+			const changes = resp.changes;
+			const identifier = resp.identifier;
 
 			// resetou o stream de mudanças
 			// Tem que ver isso depois
@@ -167,37 +213,41 @@ class PixelSaver {
 
 				if(PixelSaver.applyChangesOnImage(changes)) {
 					const pixelsModificados = Math.floor(changes.length/8);
-					console.log("Teve %d pixels modificados, Irá salvar...",pixelsModificados);
+					console.log("Teve %d pixels modificados",pixelsModificados);
 
 					if(changes.length % 8 != 0) {
 						console.log("Mudanças com tamanho estranho: %d\n%s",changes.length,changes);
 					}
 
 					// vai repetir para pegar mais modificações que faltaram
-					// PROBLEMA: SE QUANDO REPETIR NÃO TIVER MAIS NADA NÃO SALVA
-					if(pixelsModificados >= MAX_CHANGES_RESPONSE) return true; 
-
-					await PixelSaver.savePicture();
-
-					// Reseta as modificações se ficou muito grande
-					if(i >= MAX_CHANGES_SIZE) {
-						console.log("Chegou no limite de modificações(i = %d), resetando modificações...",i);
-						const resetresp = await PixelSaver.doResetChangesPost(i);
-
-						last_i = 0;
-						last_identifier = resetresp.identifier;
-						return false;
-					} else {
-						await PixelSaver.doSetSavedIndexPost(i);
-
-						return false;
-					}
+					if(pixelsModificados >= MAX_CHANGES_RESPONSE) return true;			
 				}
-				else return false;
 			}
+
+			return false;
 		} catch(e) {
 			console.log("Erro ao carregar mudanças da imagem:",e);
 			return false;
+		}
+	}
+
+	static async automaticSave() {
+		try {
+			console.log("Salvando imagem...");
+			await PixelSaver.savePicture();
+
+			// Reseta as modificações se ficou muito grande
+			if(last_i >= MAX_CHANGES_SIZE) {
+				console.log("Chegou no limite de modificações(i = %d), resetando modificações...",last_i);
+				const resetresp = await PixelSaver.doResetChangesPost(last_i);
+
+				last_i = 0;
+				last_identifier = resetresp.identifier;
+			} else {
+				await PixelSaver.doSetSavedIndexPost(last_i);
+			}
+		} catch(e) {
+			console.log("Erro ao aplicar as mudanças da imagem:",e);
 		}
 	}
 
