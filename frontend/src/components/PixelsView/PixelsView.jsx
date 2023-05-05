@@ -115,7 +115,7 @@ const PixelsView = (props) => {
 			let agora = Date.now();
 			let diferenca = agora - estado.changesUltimoFetch;
 			if(diferenca > estado.changesDelayFetch) {
-				doFetchChanges(estado);
+				doFetchChanges(estado,false);
 				return false; // Não causa redraw
 			}
 			else

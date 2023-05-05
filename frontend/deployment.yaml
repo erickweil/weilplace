@@ -2,22 +2,25 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    io.kompose.service: weilplace-frontend
-  name: weilplace-frontend
+    io.kompose.service: weilplace-site
+  name: weilplace-site
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: weilplace-frontend
+      io.kompose.service: weilplace-site
   strategy: {}
   template:
     metadata:
       labels:
-        io.kompose.service: weilplace-frontend
+        io.kompose.service: weilplace-site
     spec:
       containers:
-        - image: erickweil/weilplace-site:kubernetes # Precisa fazer rebuild toda vez para deploy
-          name: weilplace-frontend
+        - name: weilplace-site
+          image: registry.fslab.dev/erickweil/weilplace-site:latest
+          imagePullSecrets:
+          - name: regcred
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           resources: {}
@@ -26,13 +29,13 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    io.kompose.service: weilplace-frontend
-  name: weilplace-frontend
+    io.kompose.service: weilplace-site
+  name: weilplace
 spec:
   type: NodePort
   ports:
-    - port: 3000
+    - port: 80
       targetPort: 3000
       nodePort: 30080
   selector:
-    io.kompose.service: weilplace-frontend
+    io.kompose.service: weilplace-site

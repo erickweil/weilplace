@@ -13,11 +13,17 @@ const doChangesGet = async (last_i) => {
 
 let last_i = 0;
 let last_identifier = false;
-
+let broadcastCounter = 0;
 // A ideia é ficar verificando se houve modificações, e caso seja detectado modificações faz um broadcasting
 // a todos os usuários que essa modificação aconteceu
 export const setupPublishChanges = (wss) => {
 	const interval = setInterval(async () => {
+
+		if(wss.clients.size <= 0) {
+			// se ninguém vai ouvir para que ficar verificando?
+			return;
+		}
+
 		//console.log("interval last_i:",last_i);
 		const resp = await doChangesGet(last_i);
 
@@ -43,6 +49,12 @@ export const setupPublishChanges = (wss) => {
 		if(last_i != i || last_identifier != identifier) { 
 			last_i = i;
 			last_identifier = identifier;
+
+			broadcastCounter++;
+			if(broadcastCounter % 1000 == 0) { // faz o log a cada 1000 broadcasts para ter uma ideia da carga
+				const timestamp = new Date().toISOString();
+				console.log(timestamp+" total de broadcasts:"+broadcastCounter+", websockets conectados:"+wss.clients.size);
+			}
 
 			doBroadcastEveryone(wss,JSON.stringify({
 				post: "/publishchanges",

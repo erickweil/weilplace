@@ -40,6 +40,9 @@ const imagemCarregou = (estado, myImg, url, imagemOffset, identifier, centraliza
             y: 0,
         }
     });
+
+    if(estado.changesTerminouFetch)
+    doFetchChanges(estado,true);
 };
 
 const carregarImagem = (estado,url,imagemOffset,identifier,centralizar) => {
@@ -81,18 +84,26 @@ export const doFetchPicture = (estado,centralizar) => {
     });
 }
 
-export const doFetchChanges = (estado) => {		
+export const doFetchChanges = (estado,force) => {		
     estado.changesTerminouFetch = false;
 
     const webSocket = getSocketInstance();
     if(webSocket !== null) {
         //console.log("Tem websocket!!!");
 
-        // Não precisa fazer requisição, só garantir que está registrado o listener
         registerWebSocketListeners(webSocket,estado);
+        if(force) {
+            // POSSÍVEL PROBLEMA: Tem que fazer um jeito de pegar o erro de timeout dessa chamada
+            webSocket.send(JSON.stringify({
+                get: "/changes",
+                i: estado.changesOffset
+            }));
+        } else {
 
-        estado.changesTerminouFetch = true;
-        estado.changesUltimoFetch = Date.now();
+            // Não precisa fazer requisição, só garantir que está registrado o listener
+            estado.changesTerminouFetch = true;
+            estado.changesUltimoFetch = Date.now();
+        }
     } else {
         const url = getApiURL("/changes");
         url.search =  new URLSearchParams({i:estado.changesOffset});
@@ -140,11 +151,7 @@ export const onPublishChanges = (estado,json) => {
             if(i - changePixelLength != estado.changesOffset) {
                 // Não pode processar uma mudança desalinhada.
                 console.log("Não pode processar uma mudança desalinhada. Fazendo outro fetch changes para sincronizar");
-                const webSocket = getSocketInstance();
-                webSocket.send(JSON.stringify({
-                    get: "/changes",
-                    i: estado.changesOffset
-                }));
+                doFetchChanges(estado,true);
                 return;
             }
 
@@ -165,47 +172,12 @@ export const onPublishChanges = (estado,json) => {
 export const onFetchChangesResponse = (estado,json) => {
     let delayNextFetch = estado.changesDelayFetch;
     try {
-        const i = parseInt(json.i);
-        const changes = json.changes;
-        const identifier = json.identifier;
-        // Deveria ter um id,hash,seilá para saber que resetou o server
-        // pode acontecer de aplicar mudanças na imagem errada
-        if(i <= -1) {
-            // Algo muito errado aconteceu. Vamos logar isso.
-            console.log("Retornou %d no changesOffset, erro no servidor?",i);
-        } else if(estado.changesIdentifier !== false && identifier != estado.changesIdentifier) {
-            // Precisa re-carregar a imagem, resetou as mudanças?
-            estado.changesOffset = i;
-            estado.changesIdentifier = identifier;
-
-            console.log("Resetou a imagem? i:%d, identifier:%s",i,identifier);
-
-            // Carregando a imagem depois do changesOffset,
-            // só há chances de re-aplicar mudanças, não tem como faltar nada
-            // (o que não pode ocorrer é carregar primeiro a imagem e depois o changesOffset)
-            //carregarImagem(estado,imagemUrl,estado.changesOffset,false);
-            doFetchPicture(estado,false);
-        } else if(i == estado.changesOffset) {
-            // faz nada. já ta tudo igual.
-            estado.changesOffset = i;
-            estado.changesIdentifier = identifier;
-        } else if(i > estado.changesOffset) {
-            estado.changesOffset = i;
-            estado.changesIdentifier = identifier;
-
-            // registra que precisa re-desenhar se houver mudanças.
-            estado.changesNeedsRedraw = handlePixelChanges(changes,estado.pallete,
-            (hexColor,x,y) => {
-                estado.canvasPicture.drawPixel(hexColor,x,y);
-            });
-
-            if(estado.changesNeedsRedraw) {
-                delayNextFetch = estado.changesDelayFastFetch;
-            }
-        }
-    } catch(e) {
-        console.log("Erro ao carregar mudanças da imagem:",e);
+        onPublishChanges(estado,json);
     } finally {
+        if(estado.changesNeedsRedraw) {
+            delayNextFetch = estado.changesDelayFastFetch;
+        }
+
         estado.changesTerminouFetch = true;
         estado.changesUltimoFetch = Date.now() - (estado.changesDelayFetch-delayNextFetch);
     }

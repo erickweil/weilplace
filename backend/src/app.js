@@ -32,8 +32,8 @@ const app = express();
 //initialize a simple http server (Para utilizar websockets precisa fazer assim)
 const server = http.createServer(app);
 
-if(process.env.NODE_ENV != "production") // Apenas durante desenvolvimento para testar
-	app.use(express.static("public"));
+//if(process.env.NODE_ENV != "production") // Apenas durante desenvolvimento para testar
+app.use(express.static("public"));
 
 // Habilita o CORS para todas as origens
 app.use(cors({

@@ -2,13 +2,13 @@
 import cron from "node-cron";
 
 import sharp from "sharp";
-import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, MAX_CHANGES_RESPONSE, MAX_CHANGES_SIZE, PALLETE, PATH_PICTURE, REDIS_ENABLED } from "../config/options.js";
-
+import { copyFile } from "fs";
 import makeFetchCookie from "fetch-cookie";
+
+import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, MAX_CHANGES_RESPONSE, MAX_CHANGES_SIZE, PALLETE, PATH_PICTURE, REDIS_ENABLED, SAVE_HISTORY } from "../config/options.js";
 import { handlePixelChanges } from "../config/changesProtocol.js";
 import { handleGetChanges } from "../routes/pixelsRoutes.js";
 import { handleResetChanges, handleSetSavedIndex } from "../routes/privateRoutes.js";
-
 // desativado usar fetch, mas mantido aqui apenas por questão de 'vai que'
 const USE_FETCH = false;
 
@@ -104,6 +104,28 @@ class PixelSaver {
 				}
 			}
 		).png().toFile(PATH_PICTURE);
+
+		if(SAVE_HISTORY)
+		{
+			// https://stackoverflow.com/questions/4402934/javascript-time-and-date-getting-the-current-minute-hour-day-week-month-y
+			const now = new Date();
+
+			const second = now.getSeconds();
+			const minute = now.getMinutes();
+			const hour = now.getHours();
+
+			const year = now.getFullYear();
+			const month = now.getMonth()+1; // beware: January = 0; February = 1, etc.
+			const day = now.getDate();
+
+			const pathWithoutExtension = PATH_PICTURE.substring(0, PATH_PICTURE.lastIndexOf(".")) || PATH_PICTURE;
+			const extension =  PATH_PICTURE.substring(PATH_PICTURE.lastIndexOf(".")+1);
+			const path2 = pathWithoutExtension+"_"+year+"-"+month+"-"+day+" "+hour+"."+minute+"."+second+"."+extension;
+
+			copyFile(PATH_PICTURE,path2,(err) => {
+				if(err) throw err;
+			});
+		}
 	}
 
 	static applyChangesOnImage(changes) {

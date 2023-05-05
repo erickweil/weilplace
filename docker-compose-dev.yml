@@ -56,8 +56,16 @@ services:
     ports:
       - "3000:3000"
     environment:
-      API_URL: "http://weilplace-server:3001"
-    #  PORT: "3333"
+      PORT: "3000"
+      SERVERSIDE_API_URL: "http://weilplace-server:3001"
+      NEXT_PUBLIC_API_URL: "http://127.0.0.1:3001"
+
+      # Websockets
+      NEXT_PUBLIC_WEBSOCKET_ENABLED: "true"
+      NEXT_PUBLIC_WEBSOCKET_URL: "ws://127.0.0.1:3001"
+      # Especifica o caminho que irá buscar os assets, para
+      # hospedar o site em um subpath /algumacoisa
+      ASSET_PREFIX: ""
     entrypoint: "/bin/sh -c 'npm install && npm run dev'"
     networks:
       - weilplace

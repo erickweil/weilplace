@@ -71,9 +71,11 @@ const initWebSocketServer = (server) => {
 		ws.isAlive = true;
 		ws.session = {username:haiku()};
 		console.log(ws.session.username+" conectado.");
-		ws.on("error",console.error);
+		ws.on("error",(error) => {
+			console.log("Erro em:"+ws.session.username,error);
+		});
 		ws.on("pong", () => {
-			console.log("Recebeu pong de "+ws.session.username);
+			//console.log("Recebeu pong de "+ws.session.username);
 			ws.isAlive = true;
 		});
 		ws.on("close", () => {
@@ -90,7 +92,7 @@ const initWebSocketServer = (server) => {
 				return ws.terminate(); // ws.readyState !== WebSocket.OPEN
 			}
 
-			console.log("Enviou ping para "+ws.session.username);
+			//console.log("Enviou ping para "+ws.session.username);
 			ws.isAlive = false;
 			ws.ping();
 		});

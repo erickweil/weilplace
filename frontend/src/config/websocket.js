@@ -4,7 +4,7 @@
 const isBrowser = typeof window !== "undefined";
 let useWebSocket = isBrowser && process.env.NEXT_PUBLIC_WEBSOCKET_ENABLED === "true";
 let socket = null;
-
+let socketConnected = false;
 
 // Desativado o heartbeat pq o evento de ping não está funcionando no nextJS
 // https://www.npmjs.com/package/ws#how-to-detect-and-close-broken-connections
@@ -51,13 +51,16 @@ let connectionErrorCount = 0;
 export const getSocketInstance = () => {
 	if(!useWebSocket) return null;
 
-	if(socket !== null) return socket;
-
+	if(socket !== null) {
+		if(!socketConnected) return null;
+		else return socket;
+	}
 
     const websocket_url = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
 
 	try {
 		console.log("Criando nova conexão websocket...");
+		socketConnected = false;
 		socket = new WebSocket(
 			websocket_url
 		);
@@ -65,7 +68,9 @@ export const getSocketInstance = () => {
 		console.log("Erro ao criar o websocket:",e);
 		connectionErrorCount++;
 
-		if(connectionErrorCount >= 3) {
+		if(connectionErrorCount >= 5) {
+			
+			console.error("Desistiu de tentar conectar por websocket");
 			useWebSocket = false; // Para de tentar conectar deu erro 5 vezes!
 		}
 
@@ -75,6 +80,7 @@ export const getSocketInstance = () => {
 	socket.addEventListener("open", () => {
 		console.log("Aberta conexão websocket");
 		connectionErrorCount = 0;
+		socketConnected = true;
 	});
 
 	socket.addEventListener("ping", () => {
@@ -88,9 +94,11 @@ export const getSocketInstance = () => {
 		console.log("Fechou a conexão websocket...");
 		connectionErrorCount++;
 
-		if(connectionErrorCount >= 3) {
+		if(connectionErrorCount >= 5) {
+			console.error("Desistiu de tentar conectar por websocket");
 			useWebSocket = false; // Para de tentar conectar deu erro 5 vezes!
 		}
+		socketConnected = false;
 		socket = null;
 	});
 
@@ -130,5 +138,5 @@ export const getSocketInstance = () => {
 		console.log("Erro:",event);
 	});
 
-	return socket;
+	return null;
 };
