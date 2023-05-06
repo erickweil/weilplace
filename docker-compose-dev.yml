@@ -18,7 +18,7 @@ services:
       PATH_PICTURE: "./public/pixels/picture.png"
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
-      LOG_ROUTES: "false"
+      LOG_ROUTES: "true"
       #MAX_CHANGES_RESPONSE: 50
       #MAX_CHANGES_SIZE: 100
     entrypoint: "/bin/sh -c 'npm install && npm run devStart'"

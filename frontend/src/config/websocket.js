@@ -151,7 +151,7 @@ export const getSocketInstance = () => {
 	});
 
 	socket.addEventListener("message", async (event) => {
-		console.log("Mensagem do servidor '%s'",event.data);
+		//console.log("Mensagem do servidor '%s'",event.data);
 
 		const message = event.data;
 

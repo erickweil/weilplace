@@ -3,6 +3,7 @@ import { WebSocket, WebSocketServer } from "ws"; //https://www.npmjs.com/package
 import { haiku } from "../middleware/sessionManager.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";
 import { setupPublishChanges } from "./wsPublishChanges.js";
+import { LOG_ROUTES } from "../config/options.js";
 
 export const doBroadcastEveryoneButMe = (wss,ws_client,msg) => {
 	wss.clients.forEach((client) => {
@@ -49,6 +50,11 @@ const onConnection = (wss,ws) => {
 		const session = {
 			username:ws.session.username
 		};
+
+		if(LOG_ROUTES) {
+			const timestamp = new Date().toISOString();
+			console.log(timestamp+" "+session.username+" websocket: "+method+" "+route);
+		}
 
 		const resp = await handler(json,session);	
 		if(resp.status == 200) {

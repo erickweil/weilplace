@@ -1,6 +1,10 @@
 import * as dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
 import makeFetchCookie from "fetch-cookie";
 import { API_URL, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, initOptions } from "../config/options.js";
+import { handlePostPixel } from "../routes/pixelsRoutes.js";
+import { haiku } from "../middleware/sessionManager.js";
+import { connectToRedis } from "../config/redisConnection.js";
+import PixelChanges from "../controller/pixelChanges.js";
 
 dotenv.config();
 
@@ -8,8 +12,13 @@ initOptions();
 
 class BotPlacer {
 
-	constructor(_api_url,_width,_height,_pallete) {
-		this.cookieFetch = makeFetchCookie(fetch);
+	constructor(_api_url,_width,_height,_pallete,useNetwork) {
+		this.useNetwork = useNetwork;
+		if(useNetwork)
+			this.cookieFetch = makeFetchCookie(fetch);
+		else
+			this.username = haiku();
+
 		this.api_url = _api_url;
 		this.width = _width;
 		this.height = _height;
@@ -19,13 +28,21 @@ class BotPlacer {
 		this.posy = -1000;
 	}
 
-	async doPixelPost(x,y,c) {				
-		const res = await this.cookieFetch(new URL(this.api_url+"/pixel"),{
-			method: "POST",
-			body: JSON.stringify({x:x, y:y, c:c}),
-			headers: { "Content-Type": "application/json" }
-		});
-		return await res.json();
+	async doPixelPost(x,y,c) {			
+		if(this.useNetwork) {	
+			const res = await this.cookieFetch(new URL(this.api_url+"/pixel"),{
+				method: "POST",
+				body: JSON.stringify({x:x, y:y, c:c}),
+				headers: { "Content-Type": "application/json" }
+			});
+			return await res.json();
+		} else {
+			return await handlePostPixel({
+				x:x, y:y, c:c
+			},{
+				username: this.username
+			}).json;
+		}
 	}
 
 	async randomPlace() {
@@ -48,10 +65,15 @@ class BotPlacer {
 
 }
 
-const spawnBotPlacers = (quantity,placeInterval) => {
+const spawnBotPlacers = async (quantity,placeInterval,useNetwork) => {
+
+	let redisClient = !useNetwork ?  await connectToRedis(PixelChanges.getLuaScriptsConfig()) : false;
+
+	await PixelChanges.init(redisClient);
+
 	for(let i = 0; i< quantity; i++) {
-		const placer = new BotPlacer(API_URL,IMAGE_WIDTH,IMAGE_HEIGHT,PALLETE);
-		const randomInterval = Math.floor(Math.random()*placeInterval) + 100;
+		const placer = new BotPlacer(API_URL,IMAGE_WIDTH,IMAGE_HEIGHT,PALLETE,useNetwork);
+		const randomInterval = Math.floor(Math.random()*placeInterval) + 50;
 		setInterval(() => {
 			placer.randomPlace();
 		},randomInterval);
@@ -61,6 +83,7 @@ const spawnBotPlacers = (quantity,placeInterval) => {
 
 let quantity = 32;
 let placeInterval = 10000;
+let network = 0;
 
 process.argv.slice(2)
 	.map(arg => arg.split("="))
@@ -74,7 +97,10 @@ process.argv.slice(2)
 		case "placeInterval": 
 			placeInterval = parseInt(keyvaluepair[1]);
 			break;
+		case "network": 
+			network = parseInt(keyvaluepair[1]);
+			break;
 		}
 	});
 
-spawnBotPlacers(quantity,placeInterval);
+spawnBotPlacers(quantity,placeInterval,network == 1);

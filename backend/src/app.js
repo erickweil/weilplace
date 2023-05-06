@@ -79,21 +79,6 @@ app.use(session(sessionOptions));
 
 app.use(SessionManager.initSession);
 
-if(LOG_ROUTES) {
-	app.use((req,res,next) => {
-		const timestamp = new Date().toISOString();
-
-		const username = req.session.username;
-
-		let ip = req.headers["x-forwarded-for"] ||
-		req.socket.remoteAddress ||
-		null;
-   
-		console.log(timestamp+" "+ip+" "+username+" "+req.protocol + "://" + req.get("host") + req.originalUrl);
-		next();
-	});
-}
-
 // Websockets
 if(WEBSOCKET_ENABLED) {
 	const wss = initWebSocketServer(server);
