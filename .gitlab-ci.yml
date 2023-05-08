@@ -1,48 +1,25 @@
+#include: '/templates/padrao.template.yml'
+include: 'https://gitlab.fslab.dev/fslab/modelo-ci-cd/-/raw/master/templates/padrao.template.yml'
+
 variables:
   IMG_WEILPLACE_API: registry.fslab.dev/erickweil/weilplace-api
   IMG_WEILPLACE_SITE: registry.fslab.dev/erickweil/weilplace-site
-  #TAG_COMMIT: $CI_REGISTRY/$GITLAB_USER_LOGIN/nodejs-exemplo:$CI_COMMIT_SHORT_SHA
+  
   KUBECTL_CONFIG: $KUBECTL_CONFIG
   API_SHARED_SECRET: $API_SHARED_SECRET
   SESSION_SECRET: $SESSION_SECRET
+
 stages:
   - test
   - publish
   - deploy
 
-# "by starting it with a dot, it will be ignored, thus behaving like a "template"."
-.base-rules:
-  # https://how-to.dev/how-to-set-up-monorepo-build-in-gitlab-ci
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      allow_failure: false
-      when: always
-    - when: never
-
-.merge-test-rules:
-  # https://how-to.dev/how-to-set-up-monorepo-build-in-gitlab-ci
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
-      allow_failure: false
-      when: always
-    - when: never
-
-.desativado:
-  rules:
-    - when: manual
-      allow_failure: true
-
-# https://about.gitlab.com/blog/2020/12/10/basics-of-gitlab-ci-updated/
-test-weilplace:
-  stage: test
-  extends: .base-rules
-  variables:
-  # Para não precisar clonar
-    GIT_STRATEGY: none
-    FUNCIONA_VARIAVEIS: "eae funciona?"
+test:
+  extends: 
+    - .on-commit-main
+    - .disable-git-clone
   needs: []
+  stage: test
   script:
     - echo $FUNCIONA_VARIAVEIS
     - ls -lhas
@@ -54,96 +31,58 @@ test-weilplace:
     - head -n1 $KUBECTL_CONFIG
     - echo $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-merge-test-backend:
+merge-test-api:
   image: node:alpine
-  stage: test
-  extends: .merge-test-rules
+  extends: .on-create-merge-main
   needs: []
+  stage: test
   script:
     - mv ./backend/.env.example ./backend/.env
     - cd ./backend
     - npm install
     - npm run test
 
-merge-test-frontend:
+merge-test-site:
   image: node:alpine
-  stage: test
-  extends: .merge-test-rules
+  extends: .on-create-merge-main
   needs: []
+  stage: test
   script:
-    - mv ./backend/.env.example ./backend/.env
-    - cd ./backend
+    - mv ./frontend/.env.production ./frontend/.env.local
+    - cd ./frontend
     - npm install
     - npm run test
-
-# https://blog.callr.tech/building-docker-images-with-gitlab-ci-best-practices/
-# https://jsramblings.com/three-ways-to-reuse-commands-across-gitlab-jobs/
-.build-docker:
-  extends: .base-rules
-  stage: publish
-  
-  # Use this if your GitLab runner does not use socket binding
-  # services:
-  #   - docker:dind
-  # do not use latest
-  image: docker:dind
-
-  # Ways of authenticating manually if not supported by runner
-  #before_script:
-  #  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  #before_script:
-  #  - mkdir -p $HOME/.docker
-  #  - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
-  script:
-    - cd $BUILD_DIR
-    - echo "Realizando o build de $TAG_LATEST no diretório $BUILD_DIR"
-    # fetches the latest image (not failing if image is not found)
-    - docker pull $TAG_LATEST || true
-    # builds the project, passing proxy variables, using OCI labels
-    # notice the cache-from, which is going to use the image we just pulled locally
-    # the built image is tagged locally with the commit SHA, and then pushed to 
-    # the GitLab registry
-    - >
-      docker build
-      --pull
-      --cache-from $TAG_LATEST
-      --label "org.opencontainers.image.title=$CI_PROJECT_TITLE"
-      --label "org.opencontainers.image.url=$CI_PROJECT_URL"
-      --label "org.opencontainers.image.created=$CI_JOB_STARTED_AT"
-      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
-      --label "org.opencontainers.image.version=$CI_COMMIT_REF_NAME"
-      --tag $TAG_COMMIT
-      .
-    - docker tag $TAG_COMMIT $TAG_LATEST
-    - docker push "$TAG_COMMIT"
-    - docker push "$TAG_LATEST"
 
 build-weilplace-api:
-  extends: .build-docker
-  needs: ["test-weilplace"]
+  extends: 
+    - .on-commit-main
+    - .build-docker
+  needs: ["test"]
+  stage: publish
   variables:
     BUILD_DIR: "./backend"
-    TAG_LATEST: $IMG_WEILPLACE_API:latest
-    TAG_COMMIT: $IMG_WEILPLACE_API:$CI_COMMIT_SHORT_SHA
+    BUILD_TAG: $IMG_WEILPLACE_API:latest
   before_script:
     - mv ./backend/.env.example ./backend/.env
-    # Não tá legal, a imagem com secret?
+    # Não tá legal, a imagem com secret? o secret deveria estar no kubernetes não?
     - echo "SESSION_SECRET=\"$SESSION_SECRET\"" >> ./backend/.env
     - echo "API_SHARED_SECRET=\"$API_SHARED_SECRET\"" >> ./backend/.env
 
 build-weilplace-site:
-  extends: .build-docker
-  needs: ["test-weilplace"]
+  extends: 
+    - .on-commit-main
+    - .build-docker
+  needs: ["test"]
+  stage: publish
   variables:
     BUILD_DIR: "./frontend"
-    TAG_LATEST: $IMG_WEILPLACE_SITE:latest
-    TAG_COMMIT: $IMG_WEILPLACE_SITE:$CI_COMMIT_SHORT_SHA
+    BUILD_TAG: $IMG_WEILPLACE_SITE:latest
   before_script:
     - mv ./frontend/.env.production ./frontend/.env.local
 
 # https://juju.is/tutorials/using-gitlab-as-a-container-registry#7-pull-your-container
 deploy-weilplace:
-  extends: .base-rules
+  extends: .on-commit-main
   needs: ["build-weilplace-site","build-weilplace-api"]
   
   stage: deploy
@@ -160,7 +99,7 @@ deploy-weilplace:
     - kubectl get node
     - kubectl get pods
 
-    # Pedir para parar (Dependendo do que mudar na configuração isso não vai funcionar só re-aplicar)
+    # Pedir para parar (Dependendo do que mudar na configuração não vai funciona só re-aplicar com 'rollout restart')
     - kubectl delete deployment weilplace-api || true
     - kubectl delete deployment weilplace-site || true
     - kubectl delete deployment weilplace-pixelsaver || true

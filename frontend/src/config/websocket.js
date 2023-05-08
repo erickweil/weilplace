@@ -31,16 +31,64 @@ const heartbeat = () => {
 let webSocketListeners =  {"GET":{},"POST":{},"PUT":{},"DELETE":{},"PATCH":{}};
 export const registerWebSocketListener = (metodo,rota,listener) => {
 	if(webSocketListeners[metodo][rota] !== listener) {
-		console.log("Adicionado Listener %s %s",metodo,rota);
+		//console.log("Adicionado Listener %s %s",metodo,rota);
 		webSocketListeners[metodo][rota] = listener;
 	}// else console.log("Ñ Adicionado Listener %s %s",metodo,rota);
 }
 
 export const removeWebSocketListener = (metodo,rota,listener) => {
 	if(webSocketListeners[metodo][rota] === listener) {
-		console.log("Removido Listener %s %s",metodo,rota);
-		webSocketListeners[metodo][rota] = null;
+		//console.log("Removido Listener %s %s",metodo,rota);
+		// http://perfectionkills.com/understanding-delete/
+		delete webSocketListeners[metodo][rota];
 	}// else console.log("Ñ Removido Listener %s %s",metodo,rota);
+}
+
+export const hasSocketListener = (metodo,rota) => {
+	if(webSocketListeners[metodo][rota]) {
+		return true
+	} return false;
+}
+
+export const requestWebSocket = async (webSocket,metodo,rota,reqJson) => {
+	
+	const promise = new Promise(function (resolve, reject) {
+		if(webSocket === null) {
+			reject("Não tem conexão websocket ativa");
+			return;
+		}
+
+		//if(hasSocketListener(metodo,rota)) {
+		//	console.log(webSocketListeners);
+		//	reject("Já está fazendo esta requisição");
+		//	return;
+		//}
+
+		// Id para saber para qual listener enviar a resposta quando ela chegar
+		const _id = Date.now();
+
+		const timeout = setTimeout(() => {
+			removeWebSocketListener(metodo.toUpperCase(),_id,listener);
+			reject("Timeout na requisição websocket:"+metodo+" "+rota);
+		},10000);
+
+		const listener = (respJson) => {
+			clearTimeout(timeout);
+			removeWebSocketListener(metodo.toUpperCase(),_id,listener);
+			resolve(respJson);
+		};
+
+		registerWebSocketListener(metodo.toUpperCase(),_id,listener);
+
+		const keymethod = metodo.toLowerCase();
+		webSocket.send(JSON.stringify({
+			[keymethod]: rota,
+			_id: _id,
+			...reqJson
+		}));
+    });
+
+	return await promise;
 }
 
 //export const sendWebSocketMessage = (msg) => {
@@ -103,7 +151,7 @@ export const getSocketInstance = () => {
 	});
 
 	socket.addEventListener("message", async (event) => {
-		console.log("Mensagem do servidor '%s'",event.data);
+		//console.log("Mensagem do servidor '%s'",event.data);
 
 		const message = event.data;
 
@@ -123,10 +171,13 @@ export const getSocketInstance = () => {
 
 		const route = json.post || json.get;
 
-		const handler = webSocketListeners[method][route];
+		let handler = webSocketListeners[method][json._id]; // procura pelo id primeiro
 		if(!handler) {
-			console.log("Websocket: não havia listener para requisição:",json);
-			return;
+			handler = webSocketListeners[method][route];
+			if(!handler) {
+				console.log("Websocket: não havia listener para requisição:",json);
+				return;
+			}
 		}
 
 		//const sucessHandler = handler.sucessListener;

@@ -111,6 +111,11 @@ const PixelsView = (props) => {
 			mesclarEstado(estado,doZoomWithCenter(estado,scale,centerPage));
 		}
 
+		if(estado.enterPressionado) {
+			// Tudo bem pq só vai enviar o POST mesmo se for outra posição e/ou cor
+			onPlacePixel();
+		}
+
 		if(estado.changesTerminouFetch) {
 			let agora = Date.now();
 			let diferenca = agora - estado.changesUltimoFetch;
@@ -148,7 +153,8 @@ const PixelsView = (props) => {
 			changesNeedsRedraw: false,
 			pallete: pallete,
 			centerPixel: {x:0,y:0},
-			targetPixel: false
+			targetPixel: false,
+			enterPressionado: false
 		});
 
 		const socket = getSocketInstance();
@@ -185,13 +191,58 @@ const PixelsView = (props) => {
 		}
 	}
 
-	const onKeyPress = (e,estado) =>
+	/*const onKeyPress = (e,estado) =>
     {
         if(e.key == "Enter")
         {
             onPlacePixel();
         }
-    };
+    };*/
+
+	const onKeyDown = (e,estado) => {
+		let offx = 0;
+		let offy = 0;
+		switch (e.key) {
+			case "ArrowLeft":
+				offx--;
+				break;
+			case "ArrowUp":
+				offy--;
+				break;
+			case "ArrowRight":
+				offx++;
+				break;
+			case "ArrowDown":
+				offy++;
+		}
+
+		if(offx != 0 || offy != 0)	{
+			const pixelPos = estado.centerPixel;
+
+			mesclarEstado(estado, {
+				targetPixel: {
+					x:pixelPos.x + offx,
+					y:pixelPos.y + offy
+				}
+			});
+		}
+
+		if(e.key == "Enter") {
+			mesclarEstado(estado,{
+				enterPressionado: true
+			});
+        }
+	};
+
+	const onKeyUp = (e,estado) =>
+    {
+		if(e.key == "Enter") {
+			mesclarEstado(estado,{
+				enterPressionado: false
+			});
+        }
+    }
+
 
 	// https://dev.to/otamnitram/react-useeffect-cleanup-how-and-when-to-use-it-2hbm
 	const onDismount = (estado) => {
@@ -209,7 +260,9 @@ const PixelsView = (props) => {
 			everyFrame={everyFrame}
 			events={{
 				onClick: onClick,
-				onKeyPress:onKeyPress,
+				//onKeyPress:onKeyPress,
+				onKeyDown:onKeyDown,
+				onKeyUp:onKeyUp,
 				onSpan: onSpan
 			}}
 		/>
