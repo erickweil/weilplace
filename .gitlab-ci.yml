@@ -1,4 +1,5 @@
-include: '/templates/padrao.template.yml'
+#include: '/templates/padrao.template.yml'
+include: 'https://gitlab.fslab.dev/fslab/modelo-ci-cd/-/raw/master/templates/padrao.template.yml'
 
 variables:
   IMG_WEILPLACE_API: registry.fslab.dev/erickweil/weilplace-api
@@ -30,7 +31,7 @@ test:
     - head -n1 $KUBECTL_CONFIG
     - echo $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-merge-test-backend:
+merge-test-api:
   image: node:alpine
   extends: .on-create-merge-main
   needs: []
@@ -41,7 +42,7 @@ merge-test-backend:
     - npm install
     - npm run test
 
-merge-test-frontend:
+merge-test-site:
   image: node:alpine
   extends: .on-create-merge-main
   needs: []
@@ -98,7 +99,7 @@ deploy-weilplace:
     - kubectl get node
     - kubectl get pods
 
-    # Pedir para parar (Dependendo do que mudar na configuração isso não vai funcionar só re-aplicar)
+    # Pedir para parar (Dependendo do que mudar na configuração não vai funciona só re-aplicar com 'rollout restart')
     - kubectl delete deployment weilplace-api || true
     - kubectl delete deployment weilplace-site || true
     - kubectl delete deployment weilplace-pixelsaver || true
