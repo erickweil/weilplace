@@ -84,6 +84,11 @@ if(WEBSOCKET_ENABLED) {
 	const wss = initWebSocketServer(server);
 }
 
+// Websockets
+if(WEBSOCKET_ENABLED) {
+	const wss = initWebSocketServer(server);
+}
+
 // Passando para o arquivo de rotas o app, que envia junto uma instância do express
 routes(app);
 
