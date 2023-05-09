@@ -80,7 +80,7 @@ const PalleteColorPicker = (props) => {
 	else if(!isPalleteOpen)
 	return (<>
 		<div className={`${styles.divPlacenow}`} onClick={(e) => setPalleteOpen(true)}>
-		<p >Insira um pixel <span className={`${styles.coordinates2}`}>({coordinates.x},{coordinates.y})</span></p>
+		<p >Insira um pixel <span className={`${styles.coordinates2}`}>[{coordinates.x},{coordinates.y}]</span></p>
 		</div>
 	</>)
 	else
@@ -88,7 +88,7 @@ const PalleteColorPicker = (props) => {
 	<>
 		<div className={`${styles.colorPicker}`}>
 		<div className={`${styles.colorPickerTxt}`}>
-		<p className={`${styles.coordinates}`}>({coordinates.x},{coordinates.y})</p>
+		<p className={`${styles.coordinates}`}>[{coordinates.x},{coordinates.y}]</p>
 		</div>
 		<div className={`${styles.colorPickerTableDiv}`}>
 		<table className={`${styles.colorPickerTable}`}>
