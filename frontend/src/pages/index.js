@@ -40,7 +40,7 @@ export const doPixelPost = async (x,y,c) => {
 }
 
 export default function Home() {
-  console.log("Executou Home() Is SSR? -->", typeof window === "undefined");
+  console.log("Bom dia!");
 
   // https://nextjs.org/docs/basic-features/data-fetching/client-side
   const [pallete, setPallete] = useState(false);
