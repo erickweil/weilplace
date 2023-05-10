@@ -1,6 +1,10 @@
-import teste, { handleGetTeste } from "./testeRoutes.js";
-import pixels, { handleGetChanges, handlePostPixel } from "./pixelsRoutes.js";
+import swaggerUI from "swagger-ui-express";
+import swaggerJsDoc from "swagger-jsdoc";
+
+import getSwaggerOptions from "../docs/head.js";
 import priv from "./privateRoutes.js";
+import teste from "./testeRoutes.js";
+import pixels from "./pixelsRoutes.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";
 import { LOG_ROUTES } from "../config/options.js";
 
@@ -22,6 +26,12 @@ const routes = (app) => {
 	if(LOG_ROUTES) {
 		app.use(logRoutes);
 	}
+
+	app.get("/",(req, res) => {
+		res.status(200).redirect("/docs"); // redirecionando para documentação
+	});
+
+	app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerJsDoc(getSwaggerOptions())));
 
 	app.use(
 		teste,

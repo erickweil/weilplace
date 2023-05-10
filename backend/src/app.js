@@ -6,7 +6,7 @@ import RedisStore from "connect-redis";
 import http from "http";
 
 import routes from "./routes/index.js";
-import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED, REDIS_PREFIX, WEBSOCKET_ENABLED } from "./config/options.js";
+import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED, REDIS_PREFIX, WEBSOCKET_ENABLED, API_URL } from "./config/options.js";
 import { SessionManager } from "./middleware/sessionManager.js";
 import PixelChanges from "./controller/pixelChanges.js";
 import { connectToRedis } from "./config/redisConnection.js";

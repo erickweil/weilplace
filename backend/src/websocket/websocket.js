@@ -53,7 +53,7 @@ const onConnection = (wss,ws) => {
 
 		if(LOG_ROUTES) {
 			const timestamp = new Date().toISOString();
-			console.log(timestamp+" "+session.username+" websocket: "+method+" "+route);
+			console.log(timestamp+" "+session.username+" websocket: "+method+" "+route+" ",json);
 		}
 
 		const resp = await handler(json,session);	

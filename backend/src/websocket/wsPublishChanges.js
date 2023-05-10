@@ -2,11 +2,17 @@
 // https://redis.io/docs/manual/pubsub/
 // https://blog.logrocket.com/using-redis-pub-sub-node-js/
 
-import { handleGetChanges } from "../routes/pixelsRoutes.js";
+import { handleGetChanges, handleGetSavedIndex } from "../routes/pixelsRoutes.js";
 import { doBroadcastEveryone } from "./websocket.js";
 
-const doChangesGet = async (last_i) => {
-	const res = await handleGetChanges({i:""+last_i});
+const doChangesGet = async (i) => {
+	const res = await handleGetChanges({i:""+i});
+	if(res.status == 200) return res.json;
+	else throw new Error("Não foi possível completar a requisição:"+res);
+};
+
+const doSavedIndexGet = async () => {
+	const res = await handleGetSavedIndex();
 	if(res.status == 200) return res.json;
 	else throw new Error("Não foi possível completar a requisição:"+res);
 };
@@ -25,8 +31,7 @@ export const setupPublishChanges = (wss) => {
 				return;
 			}
 
-			//console.log("interval last_i:",last_i);
-			const resp = await doChangesGet(last_i);
+			const resp = last_i >= 0 ? await doChangesGet(last_i) : await doSavedIndexGet();
 
 			if(!resp 
 				|| resp.i === undefined 
