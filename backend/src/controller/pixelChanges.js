@@ -127,31 +127,32 @@ class PixelChanges {
 		};
 	}
 
+	/** Método que pega o último index salvo. Para que saiba a partir da onde aplicar as mudanças
+	 */
+	static async getSavedIndex() {
+		// Não ser atômico aqui pode ser um problema, considere receber um identifier novo porém o savedindex antigo
+		/*const [identifier, savedIndex] = await Promise.all([
+			redisClient.GET(KEY_IDENTIFIER),
+			redisClient.GET(KEY_SAVEDINDEX),
+		]);*/
+
+		const ret = await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
+		// Retorna o id de quando a imagem foi salva a última vez
+		return {
+			message: "OK",
+			identifier: ret[0],
+			i: ret[1]
+		};
+	}
+
 	/** Método que pega as mudanças
-	 *  (Obs: 'pixelIndex' deve ser inteiro ao chamar este método)
+	 *  (Obs: 'pixelIndex' deve ser inteiro e maior ou igual a 0 ao chamar este método)
 	 * 
 	 *  A chamada ao redis é feita sempre em uma única pipeline,
 	 *  gerando assim uma única requisição de rede ao redis, diminuindo o
 	 *  tempo perdido esperando a conexão ir e voltar atoa
 	 */
 	static async getChanges(pixelIndex) {
-		// Retorna o índice do último save quando solicitado com -1
-		if(pixelIndex <= -1 /*|| index > changesLength*/) {
-			// Não ser atômico aqui pode ser um problema, considere receber um identifier novo porém o savedindex antigo
-			/*const [identifier, savedIndex] = await Promise.all([
-				redisClient.GET(KEY_IDENTIFIER),
-				redisClient.GET(KEY_SAVEDINDEX),
-			]);*/
-
-			const ret = await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
-			// Retorna o id de quando a imagem foi salva a última vez
-			return {
-				message: "OK",
-				identifier: ret[0],
-				i: ret[1]
-			};
-		}
-
 		const changesIndex = pixelIndex * 8;
 		
 		// Executar vários comandos usnado pipelining. NÃO É ATÔMICO (https://github.com/redis/node-redis#auto-pipelining)
