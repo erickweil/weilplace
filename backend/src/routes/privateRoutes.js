@@ -1,6 +1,8 @@
-// ISTO VAI SER REMOVIDO DEPOIS NÃO PRECISA MAIS DE TER ROTA
-// POIS O PIXEL SAVER SE CONECTA DIRETO COM O REDIS NÃO CHAMA MAIS A API
-// E MESMO QUE N USE O REDIS, ELE ACESSA DIRETO PELO CONTROLLER
+// Esta rota será usada apenas para que o administrador possa gerenciar
+// o servidor, resetando manualmente as mudanças.
+
+// Ou então caso queira fazer um pixelSaver remoto que não tem acesso ao Redis é possível
+
 import express from "express";
 import PixelChanges from "../controller/pixelChanges.js";
 import { API_SHARED_SECRET } from "../config/options.js";
@@ -28,7 +30,7 @@ export const handleSetSavedIndex = async (body) => {
 	if(!isIntStr(body.i))
 		return {
 			status: 400,
-			json: {message: "Não especificou o índice"}
+			json: {error: "Não especificou o índice"}
 		};
 
 	const index = parseInt(body.i);
@@ -44,7 +46,7 @@ export const handleResetChanges = async(body) => {
 	if(!isIntStr(body.i))
 		return {
 			status: 400,
-			json: {message: "Não especificou o índice"}
+			json: {error: "Não especificou o índice"}
 		};
 
 	const index = parseInt(body.i);

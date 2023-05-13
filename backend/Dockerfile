@@ -7,7 +7,7 @@ ENV NODE_ENV=${NODE_ENV}
 
 ENV LOG_ROUTES="false"
 ENV PORT=3001
-ENV API_URL="http://localhost:3001"
+ENV PUBLIC_API_URL="http://localhost:3001"
 EXPOSE 3001
 
 COPY . .

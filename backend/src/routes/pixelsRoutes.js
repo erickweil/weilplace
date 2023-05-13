@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
-import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PALLETE, PATH_PICTURE, PLACE_DELAY } from "../config/options.js";
+import { PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
 
 const router = express.Router();
@@ -11,6 +11,22 @@ const router = express.Router();
  * tags:
  *   name: Pixels
  *   description: Rotas que manipulam os Pixels
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     RespostaErro:
+ *       type: object 
+ *       required:
+ *         - error
+ *       properties:
+ *         error:
+ *           type: string
+ *           description: Mensagem de erro
+ *       example:
+ *         error: "Mensagem do erro"
  */
 
 function isIntStr(value) {
@@ -51,20 +67,27 @@ function parseIntBounded(str,min,max) {
  *         content:
  *           application/json:
  *             schema:
- *               oneOf:
- *               - type: object
- *                 properties:
- *                   message:
- *                     type: string
- *                     example: "OK"
- *                   delay:
- *                     type: number
- *                     example: 0
- *               - type: object
- *                 properties:
- *                   error:
- *                     type: string
- *                     example: "Erro ao converter os valores para base64"
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "OK"
+ *                 delay:
+ *                   type: number
+ *                   example: 0
+ *       400:
+ *         description: Não informou os valores necessários.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaErro'
+ *       500:
+ *         description: Erro interno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaErro'
+ * 
  */
 export const handlePostPixel = async (body,session) => {
 	if(!isIntStr(body.x) || !isIntStr(body.y) || !isIntStr(body.c)) 
@@ -73,10 +96,10 @@ export const handlePostPixel = async (body,session) => {
 			json: {error: "É necessário x e y para posição e c para cor"}
 		};
 
-	const coord_x = parseIntBounded(body.x,0,IMAGE_WIDTH-1);
-	const coord_y = parseIntBounded(body.y,0,IMAGE_HEIGHT-1);
+	const coord_x = parseInt(body.x);
+	const coord_y = parseInt(body.y);
 
-	const color = parseIntBounded(body.c,0,PALLETE.length-1);
+	const color = parseInt(body.c);
 	
 	const username = session.username;
 
@@ -116,7 +139,7 @@ export const handlePostPixel = async (body,session) => {
  *           application/json:
  *             schema:
  *               oneOf:
- *               - type: object
+  *               - type: object
  *                 properties:
  *                   message:
  *                     type: string
@@ -126,26 +149,33 @@ export const handlePostPixel = async (body,session) => {
  *                     example: "1683580314370"
  *                   i:
  *                     type: number
- *                     example: 0
- *               - type: object
- *                 properties:
- *                   message:
- *                     type: string
- *                     example: "OK"
- *                   identifier:
- *                     type: string
- *                     example: "1683580314370"
- *                   i:
- *                     type: number
- *                     example: 0
+ *                     example: 1
  *                   changes:
  *                     type: string
  *                     example: "0QHSAQAf"
  *               - type: object
  *                 properties:
- *                   error:
+ *                   message:
  *                     type: string
- *                     example: "Erro interno ao obter as mudanças, tamanho não é múltiplo de 8: 7"
+ *                     example: "OK"
+ *                   identifier:
+ *                     type: string
+ *                     example: "1683580314370"
+ *                   i:
+ *                     type: number
+ *                     example: 0
+ *       400:
+ *         description: Não informou os valores necessários.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaErro'
+ *       500:
+ *         description: Erro interno
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespostaErro'
  */
 export const handleGetChanges = async (query) => {
 	if(!isIntStr(query.i)) 
@@ -189,17 +219,17 @@ export const handleGetChanges = async (query) => {
  *         content:
  *           application/json:
  *             schema:
- *               - type: object
- *                 properties:
- *                   message:
- *                     type: string
- *                     example: "OK"
- *                   identifier:
- *                     type: string
- *                     example: "1683580314370"
- *                   i:
- *                     type: number
- *                     example: 5547
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "OK"
+ *                 identifier:
+ *                   type: string
+ *                   example: "1683580314370"
+ *                 i:
+ *                   type: number
+ *                   example: 5547
  */
 export const handleGetSavedIndex = async () => {
 	const resp = await PixelChanges.getSavedIndex();

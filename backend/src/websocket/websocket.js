@@ -1,4 +1,3 @@
-import express from "express";
 import { WebSocket, WebSocketServer } from "ws"; //https://www.npmjs.com/package/ws
 import { haiku } from "../middleware/sessionManager.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";

@@ -1,4 +1,4 @@
-import { API_URL } from "../config/options.js";
+import { PUBLIC_API_URL } from "../config/options.js";
 
 const getSwaggerOptions = () => {
 	return {
@@ -15,7 +15,10 @@ const getSwaggerOptions = () => {
 			},
 			servers: [
 				{
-					url: API_URL,
+					url: PUBLIC_API_URL,
+				},
+				{
+					url: "http://localhost:3001",
 				}
 			],
 		},
