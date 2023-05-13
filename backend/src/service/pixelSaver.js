@@ -3,19 +3,36 @@ import cron from "node-cron";
 
 import sharp from "sharp";
 import { copyFile } from "fs";
-import makeFetchCookie from "fetch-cookie";
 
-import { API_SHARED_SECRET, API_URL, DELAY_CRON_SAVE, IMAGE_HEIGHT, IMAGE_WIDTH, MAX_CHANGES_RESPONSE, MAX_CHANGES_SIZE, PALLETE, PATH_PICTURE, REDIS_ENABLED, SAVE_HISTORY } from "../config/options.js";
+import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PICTURE } from "../config/options.js";
 import { handlePixelChanges } from "../config/changesProtocol.js";
 import { handleGetChanges, handleGetSavedIndex } from "../routes/pixelsRoutes.js";
 import { handleResetChanges, handleSetSavedIndex } from "../routes/privateRoutes.js";
+// redis_prefix: "REDIS_PREFIX" in process.env ? process.env.REDIS_PREFIX : "",
+
+// Pega do env ou então utiliza os valores padrão.
+let options = {
+	delay_cron_save: "DELAY_CRON_SAVE" in process.env ? parseInt(process.env.DELAY_CRON_SAVE) : 10,
+	/*  O MAX_CHANGES_SIZE controla quando resetar a string de modificações
+		causando todos os clientes a re-baixar a imagem. O PixelSaver que faz
+		essa verificação, então mesmo que seja 0 vai resetar a cada DELAY_CRON_SAVE
+		Já se for um valor muito alto, pode causar uma utilização de memória muito alta
+		33554432 modificações (8 bytes cada) equivalem a 256Mb. 
+		(Redis limita strings em 512MB por padrão)*/
+	max_changes_size: "MAX_CHANGES_SIZE" in process.env ? parseInt(process.env.MAX_CHANGES_SIZE) : 33554432,
+	save_history: "SAVE_HISTORY" in process.env ? process.env.SAVE_HISTORY === "true" : true,
+};
 
 let imgPixelsBuff = false;
 let last_i = -1;
 let last_identifier = false;
 
 class PixelSaver {
-	static async init() {
+	static async init(_options) {
+
+		if(_options) {
+			options = {...options, ..._options};
+		}
 
 		let imgSharpObj = false;
 		
@@ -46,13 +63,13 @@ class PixelSaver {
 			await PixelSaver.savePicture();
 		}
 
-		console.log("Image [%d,%d] Pallete size:%d",IMAGE_WIDTH,IMAGE_HEIGHT,PALLETE.length);
+		console.log("Image(%s) [%d,%d] Pallete size:%d, Save Delay:%d",PATH_PICTURE,IMAGE_WIDTH,IMAGE_HEIGHT,PALLETE.length,options.delay_cron_save);
 
 		// delay negativo ou igual a 0  desativa o auto-save
-		if(DELAY_CRON_SAVE > 0)
+		if(options.delay_cron_save > 0)
 		{
 			// https://www.npmjs.com/package/node-cron#cron-syntax
-			return cron.schedule("*/"+DELAY_CRON_SAVE+" * * * * *", async () => {
+			return cron.schedule("*/"+options.delay_cron_save+" * * * * *", async () => {
 				if(!imgPixelsBuff) return;
 
 				let repeat = true;
@@ -101,7 +118,7 @@ class PixelSaver {
 			}
 		).png().toFile(PATH_PICTURE);
 
-		if(SAVE_HISTORY)
+		if(options.save_history)
 		{
 			// https://stackoverflow.com/questions/4402934/javascript-time-and-date-getting-the-current-minute-hour-day-week-month-y
 			const now = new Date();
@@ -114,11 +131,12 @@ class PixelSaver {
 			const month = now.getMonth()+1; // beware: January = 0; February = 1, etc.
 			const day = now.getDate();
 
-			const pathWithoutExtension = PATH_PICTURE.substring(0, PATH_PICTURE.lastIndexOf(".")) || PATH_PICTURE;
-			const extension =  PATH_PICTURE.substring(PATH_PICTURE.lastIndexOf(".")+1);
+			const path = PATH_PICTURE;
+			const pathWithoutExtension = path.substring(0, path.lastIndexOf(".")) || path;
+			const extension =  path.substring(path.lastIndexOf(".")+1);
 			const path2 = pathWithoutExtension+"_"+year+"-"+month+"-"+day+" "+hour+"."+minute+"."+second+"."+extension;
 
-			copyFile(PATH_PICTURE,path2,(err) => {
+			copyFile(path,path2,(err) => {
 				if(err) throw err;
 			});
 		}
@@ -174,6 +192,7 @@ class PixelSaver {
 			const i = parseInt(resp.i);
 			const changes = resp.changes;
 			const identifier = resp.identifier;
+			const more = resp.more;
 
 			// resetou o stream de mudanças
 			// Tem que ver isso depois, ta certo colocar 0???
@@ -197,7 +216,7 @@ class PixelSaver {
 					}
 
 					// vai repetir para pegar mais modificações que faltaram
-					if(pixelsModificados >= MAX_CHANGES_RESPONSE) return true;			
+					if(more) return true;			
 				}
 			}
 
@@ -214,7 +233,7 @@ class PixelSaver {
 			await PixelSaver.savePicture();
 
 			// Reseta as modificações se ficou muito grande
-			if(last_i >= MAX_CHANGES_SIZE) {
+			if(last_i >= options.max_changes_size) {
 				console.log("Chegou no limite de modificações(i = %d), resetando modificações...",last_i);
 				const resetresp = await PixelSaver.doResetChangesPost(last_i);
 

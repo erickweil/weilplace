@@ -2,15 +2,27 @@
 import { readFileSync } from "fs";
 
 import { convertChangeToBase64 } from "../config/changesProtocol.js";
-
-import { MAX_CHANGES_RESPONSE, PLACE_DELAY, REDIS_PREFIX } from "../config/options.js";
 import RedisMock from "./redisMock.js";
 import { defineScript } from "redis";
+import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE } from "../config/options.js";
 
 let KEY_IDENTIFIER = "changesid";
 let KEY_SAVEDINDEX = "savedindex";
 let KEY_CHANGES = "changes";
 let KEY_USERTIMES = "usertimes"; // armazena o timestamp da última vez que colocou o pixel
+
+let options = {
+	redis_prefix: "REDIS_PREFIX" in process.env ? process.env.REDIS_PREFIX : "",
+	place_delay: "PLACE_DELAY" in process.env ? parseInt(process.env.PLACE_DELAY) : 0,
+	/*  O MAX_CHANGES_RESPONSE indica o tamanho de resposta máximo
+		que será dado ao cliente ao solicitar as modificações, mesmo que haja mais.
+		Este valor deve ser medido de acordo com cuidado,
+		8192 modificações equivale a uma string base64 de ~ 64kb
+		Nada impede o cliente de solicitar a string inteira desde
+		o índice 0, para evitar DoS seria bom não deixar esse valor
+		muito alto*/
+	max_changes_response: "MAX_CHANGES_RESPONSE" in process.env ? parseInt(process.env.MAX_CHANGES_RESPONSE) : 8192,
+};
 
 let redisClient = false;
 /** Gerencia as modificações nos pixels
@@ -51,7 +63,12 @@ class PixelChanges {
 	}
 	/** Especifique a conexão do redis ou então falso para guardar as mudanças na memória
 	*/
-	static async init(_redisClient) {
+	static async init(_redisClient, _options) {
+
+		if(_options) {
+			options = {...options, ..._options};
+		}
+
 		if(!_redisClient) {
 			redisClient = new RedisMock();
 			console.log("**********************************************************");
@@ -62,11 +79,11 @@ class PixelChanges {
 			redisClient = _redisClient;
 		}
 
-		if(REDIS_PREFIX && !KEY_IDENTIFIER.startsWith(REDIS_PREFIX)) {
-			KEY_IDENTIFIER = REDIS_PREFIX+KEY_IDENTIFIER;
-			KEY_SAVEDINDEX = REDIS_PREFIX+KEY_SAVEDINDEX;
-			KEY_CHANGES = REDIS_PREFIX+KEY_CHANGES;
-			KEY_USERTIMES = REDIS_PREFIX+KEY_USERTIMES;
+		if(options.redis_prefix && !KEY_IDENTIFIER.startsWith(options.redis_prefix)) {
+			KEY_IDENTIFIER = options.redis_prefix+KEY_IDENTIFIER;
+			KEY_SAVEDINDEX = options.redis_prefix+KEY_SAVEDINDEX;
+			KEY_CHANGES = options.redis_prefix+KEY_CHANGES;
+			KEY_USERTIMES = options.redis_prefix+KEY_USERTIMES;
 		}
 
 		const [identifier, savedIndex] =  await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
@@ -83,11 +100,20 @@ class PixelChanges {
 	}
 
 	static async setPixel(username,x,y,c) {
+
+		// Impedir colocar pixels fora do canvas
+		if( x < 0 || x >= IMAGE_WIDTH ||
+			y < 0 || y >= IMAGE_HEIGHT ||
+			c < 0 || c >= PALLETE.length
+		) return {
+			error: "Parâmetros fora do intervalo aceito."
+		};
+
 		// Impedir que coloque pixels sem esperar um tempo
 		// Possível problema: Como primeiro pega o tempo e depois seta o pixel,
 		// se mandar requisições simultâneas pode acontecer de setar mais de um pixel devido
 		// à condição de corrida de verificarem ao mesmo tempo?
-		if(PLACE_DELAY > 0)
+		if(options.place_delay > 0)
 		{
 			let timeLastPlaced = await redisClient.HGET(KEY_USERTIMES,username);
 			if(timeLastPlaced === null) timeLastPlaced = "-1";
@@ -101,10 +127,10 @@ class PixelChanges {
 				let timeElapsed = (Date.now() -  timeLastPlaced);
 
 				// Caso não esperou o suficiente responde com quanto tempo falta em segundos
-				if(timeElapsed < PLACE_DELAY) {
+				if(timeElapsed < options.place_delay) {
 					return {
 						message: "DELAY",
-						delay: Math.ceil((PLACE_DELAY - timeElapsed)/1000)
+						delay: Math.ceil((options.place_delay - timeElapsed)/1000)
 					};
 				}
 			}
@@ -123,7 +149,7 @@ class PixelChanges {
 
 		return {
 			message: "OK",
-			delay: PLACE_DELAY
+			delay: options.place_delay
 		};
 	}
 
@@ -170,7 +196,7 @@ class PixelChanges {
 			// em vez de pegar assim, com -1 indicando que irá obter até o fim da string:
 			// redisClient.GETRANGE(KEY_CHANGES,changesIndex,-1)
 			// vai pegar as modificações assim:
-			redisClient.GETRANGE(KEY_CHANGES,changesIndex,changesIndex+(MAX_CHANGES_RESPONSE*8 -1)) // -1 pq é inclusivo o índice
+			redisClient.GETRANGE(KEY_CHANGES,changesIndex,changesIndex+(options.max_changes_response*8 -1)) // -1 pq é inclusivo o índice
 			// https://redis.io/commands/getrange/
 			// 	'The function handles out of range requests by limiting the resulting range to the actual length of the string.'
 			// O jeito que o GETRANGE funciona é que o index do fim é limitado ao tamanho da string, então
@@ -205,6 +231,7 @@ class PixelChanges {
 			return {
 				message: "OK",
 				changes: changes,
+				more: (changes.length >= options.max_changes_response*8), // para indicar que tem mais para ler ainda
 				i: returnPixelIndex,
 				identifier: identifier
 			};

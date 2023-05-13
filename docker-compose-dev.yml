@@ -14,6 +14,7 @@ services:
       - weilplace-volume-backendmodules:/node-app/node_modules:rw
       #- weilplace-volume-pixels:/node-app/public/pixels:ro
     environment:
+      PUBLIC_API_URL: "http://127.0.0.1:3001"
       PORT: "3001"
       PATH_PICTURE: "./public/pixels/picture.png"
       REDIS_ENABLED: "true"
@@ -35,7 +36,7 @@ services:
       - weilplace-volume-backendmodules:/node-app/node_modules:rw
       #- weilplace-volume-pixels:/node-app/public/pixels:rw
     environment:
-      API_URL: "http://weilplace-server:3001"
+      PUBLIC_API_URL: "http://127.0.0.1:3001"
       PATH_PICTURE: "./public/pixels/picture.png"
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"

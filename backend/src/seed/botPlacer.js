@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
 import makeFetchCookie from "fetch-cookie";
-import { API_URL, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, initOptions } from "../config/options.js";
+import { PUBLIC_API_URL, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, initOptions } from "../config/options.js";
 import { handlePostPixel } from "../routes/pixelsRoutes.js";
 import { haiku } from "../middleware/sessionManager.js";
 import { connectToRedis } from "../config/redisConnection.js";
@@ -73,7 +73,7 @@ const spawnBotPlacers = async (quantity,placeInterval,useNetwork) => {
 	await PixelChanges.init(redisClient);
 
 	for(let i = 0; i< quantity; i++) {
-		const placer = new BotPlacer(API_URL,IMAGE_WIDTH,IMAGE_HEIGHT,PALLETE,useNetwork);
+		const placer = new BotPlacer(PUBLIC_API_URL,IMAGE_WIDTH,IMAGE_HEIGHT,PALLETE,useNetwork);
 		const randomInterval = Math.floor(Math.random()*placeInterval) + 50;
 		setInterval(() => {
 			placer.randomPlace();

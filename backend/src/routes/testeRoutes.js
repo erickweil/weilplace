@@ -19,7 +19,7 @@ const router = express.Router();
  *           type: object
  *           description: Resposta
  *       example:
- *         message: OK
+ *         message: Recebido
  *         body:
  *           teste: Teste
  */
@@ -37,6 +37,14 @@ const router = express.Router();
  *   get:
  *     summary: Apenas para testar
  *     tags: [Teste]
+ *     parameters:
+ *     - in: query
+ *       name: teste
+ *       required: false
+ *       schema:
+ *         type: string
+ *         example: "Teste de mensagem"
+ *       description: Envie uma mensagem para testar
  *     responses:
  *       200:
  *         description: Retorna a query que foi enviada no GET request

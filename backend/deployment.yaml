@@ -13,7 +13,7 @@ data:
   REDIS_ENABLED: "true"
   WEBSOCKET_ENABLED: "true"
   REDIS_URL: "redis://weilplace-redis:6379"
-  API_URL: "http://weilplace-api:80"
+  PUBLIC_API_URL: "https://weilplace-api.app.fslab.dev"
 ---
 apiVersion: apps/v1
 kind: Deployment

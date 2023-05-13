@@ -1,21 +1,17 @@
 import express from "express";
-import dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
 import cors from "cors";
 import session from "express-session";
 import RedisStore from "connect-redis";
 import http from "http";
 
+import { SESSION_MAX_AGE, SESSION_SECRET, REDIS_ENABLED, WEBSOCKET_ENABLED } from "./config/options.js";
+
 import routes from "./routes/index.js";
-import { SESSION_MAX_AGE, LOG_ROUTES, SESSION_SECRET, initOptions, REDIS_ENABLED, REDIS_PREFIX, WEBSOCKET_ENABLED, API_URL } from "./config/options.js";
 import { SessionManager } from "./middleware/sessionManager.js";
 import PixelChanges from "./controller/pixelChanges.js";
 import { connectToRedis } from "./config/redisConnection.js";
 import PixelSaver from "./service/pixelSaver.js";
 import initWebSocketServer from "./websocket/websocket.js";
-
-dotenv.config();
-
-initOptions();
 
 let redisClient = REDIS_ENABLED ?  await connectToRedis(PixelChanges.getLuaScriptsConfig()) : false;
 
@@ -32,8 +28,8 @@ const app = express();
 //initialize a simple http server (Para utilizar websockets precisa fazer assim)
 const server = http.createServer(app);
 
-//if(process.env.NODE_ENV != "production") // Apenas durante desenvolvimento para testar
-app.use(express.static("public"));
+if(process.env.NODE_ENV != "production") // Apenas durante desenvolvimento para testar
+	app.use(express.static("public"));
 
 // Habilita o CORS para todas as origens
 app.use(cors({
@@ -69,7 +65,7 @@ if(REDIS_ENABLED) {
 	// Initialize store.
 	const redisStore = new RedisStore({
 		client: redisClient,
-		prefix: (REDIS_PREFIX ? REDIS_PREFIX : "")+"sess:",
+		prefix: "sess:",
 		ttl: SESSION_MAX_AGE // ttl is in seconds. https://www.npmjs.com/package/connect-redis#ttl
 	});
 
