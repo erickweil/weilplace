@@ -80,7 +80,7 @@ const PalleteColorPicker = (props) => {
 	else if(!isPalleteOpen)
 	return (<>
 		<div className={`${styles.divPlacenow}`} onClick={(e) => setPalleteOpen(true)}>
-		<p >Coloque um pixel <span className={`${styles.coordinates2}`}>[{coordinates.x},{coordinates.y}]</span></p>
+		<p >Insira um Pixel <span className={`${styles.coordinates2}`}>[{coordinates.x},{coordinates.y}]</span></p>
 		</div>
 	</>)
 	else
