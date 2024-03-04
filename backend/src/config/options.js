@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { readFileSync } from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -26,7 +27,8 @@ export const PATH_PALLETE = envOrDefault("PATH_PALLETE","./public/pallete.json")
 export const PALLETE = [];
 
 const initOptions = () => {	
-	const palleteJson = JSON.parse(readFileSync(PATH_PALLETE,"utf8"));
+	console.log(process.cwd());
+	const palleteJson = JSON.parse(readFileSync(path.join(process.cwd(), PATH_PALLETE),"utf8"));
 
 	for(let c of palleteJson.pallete) {
 		PALLETE.push(parseInt(c,16));
