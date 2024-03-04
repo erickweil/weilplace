@@ -1,5 +1,5 @@
-public/pixels/
-
+public/pixels/*
+!public/pixels/picture.png
 # Logs
 logs
 *.log
