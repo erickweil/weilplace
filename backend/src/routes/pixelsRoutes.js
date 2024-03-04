@@ -3,6 +3,7 @@ import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
 import { PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
+import { palleteJson } from "../config/pallete.js";
 
 const router = express.Router();
 
@@ -326,7 +327,8 @@ router.get("/picture", async (req,res) => {
  *                     example: "ffffff"
  */
 router.get("/pallete", (req,res) => {
-	return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
+	//return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
+	return res.status(200).json(palleteJson);
 });
 
 
