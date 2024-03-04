@@ -1,9 +1,10 @@
 import express from "express";
 import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
-import { PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
+import { IMAGE_HEIGHT, IMAGE_WIDTH, PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
 import { palleteJson } from "../config/pallete.js";
+import sharp from "sharp";
 
 const router = express.Router();
 
@@ -303,7 +304,31 @@ router.get("/picture", async (req,res) => {
 				"Expires": "0"
 			}
 			// colocar body?
-		});
+		}, async (err) => {
+            if(!err) return;
+
+            console.error(err);
+
+            let imgSharpObj = await sharp({
+                create: {
+                    width: IMAGE_WIDTH,
+                    height: IMAGE_HEIGHT,
+                    channels: 3,
+                    background: {r: 255, g: 255, b: 255}
+                }
+            });
+    
+            let imgPixelsBuff = await imgSharpObj.png().toBuffer();
+    
+            res.status(200)
+                .setHeader("X-Changes-Offset", resp.i)
+                .setHeader("X-Changes-Identifier", resp.identifier)
+                .setHeader("Cache-Control", "no-store, must-revalidate")
+                .setHeader("Pragma", "no-cache")
+                .setHeader("Expires", "0")
+                .setHeader("Content-Type", "image/png")
+                .send(imgPixelsBuff);
+        });
 });
 
 /**
