@@ -5,8 +5,8 @@ metadata:
 data:
   PORT: "3001"
   LOG_ROUTES: "false"
-  IMAGE_WIDTH: "1024"
-  IMAGE_HEIGHT: "1024"
+  IMAGE_WIDTH: "256"
+  IMAGE_HEIGHT: "256"
   PLACE_DELAY: "0"
   SAVE_HISTORY: "true"
   PATH_PICTURE: "./public/pixels/picture.png"
