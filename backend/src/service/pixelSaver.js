@@ -2,12 +2,12 @@
 import cron from "node-cron";
 
 import sharp from "sharp";
-import { copyFile } from "fs";
 
 import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PICTURE } from "../config/options.js";
 import { handlePixelChanges } from "../config/changesProtocol.js";
 import { handleGetChanges, handleGetSavedIndex } from "../routes/pixelsRoutes.js";
 import { handleResetChanges, handleSetSavedIndex } from "../routes/privateRoutes.js";
+import PixelHistory from "../controller/pixelHistory.js";
 // redis_prefix: "REDIS_PREFIX" in process.env ? process.env.REDIS_PREFIX : "",
 
 // Pega do env ou então utiliza os valores padrão.
@@ -42,6 +42,7 @@ class PixelSaver {
 
 			imgPixelsBuff = await imgSharpObj.raw().toBuffer();
 
+			console.log("Metadata:", imgMetadata);
 			if(imgMetadata.width != IMAGE_WIDTH || imgMetadata.height != IMAGE_HEIGHT) {
 				throw new Error(`Imagem deveria ser ${IMAGE_WIDTH}x${IMAGE_HEIGHT} porém é ${imgMetadata.width}x${imgMetadata.height} abortando...`);
 			}
@@ -60,7 +61,7 @@ class PixelSaver {
 
 			imgPixelsBuff = await imgSharpObj.raw().toBuffer();
 
-			await PixelSaver.savePicture();
+			await PixelSaver.savePicture(last_identifier, last_i);
 		}
 
 		console.log("Image(%s) [%d,%d] Pallete size:%d, Save Delay:%d",PATH_PICTURE,IMAGE_WIDTH,IMAGE_HEIGHT,PALLETE.length,options.delay_cron_save);
@@ -107,7 +108,7 @@ class PixelSaver {
         return buffer;
     }*/
 
-	static async savePicture() {
+	static async savePicture(identifier, i) {
 		await sharp(
 			imgPixelsBuff, {
 				raw: {
@@ -116,29 +117,23 @@ class PixelSaver {
 					channels: 3
 				}
 			}
-		).png().toFile(PATH_PICTURE);
+		)
+		.png()
+		/*.withMetadata({
+			exif: {
+				IFD0: {
+					Copyright: JSON.stringify({
+						identifier: identifier,
+						offset: i
+					})
+				}
+			}
+		})*/
+		.toFile(PATH_PICTURE);
 
 		if(options.save_history)
 		{
-			// https://stackoverflow.com/questions/4402934/javascript-time-and-date-getting-the-current-minute-hour-day-week-month-y
-			const now = new Date();
-
-			const second = now.getSeconds();
-			const minute = now.getMinutes();
-			const hour = now.getHours();
-
-			const year = now.getFullYear();
-			const month = now.getMonth()+1; // beware: January = 0; February = 1, etc.
-			const day = now.getDate();
-
-			const path = PATH_PICTURE;
-			const pathWithoutExtension = path.substring(0, path.lastIndexOf(".")) || path;
-			const extension =  path.substring(path.lastIndexOf(".")+1);
-			const path2 = pathWithoutExtension+"_"+year+"-"+month+"-"+day+" "+hour+"."+minute+"."+second+"."+extension;
-
-			copyFile(path,path2,(err) => {
-				if(err) throw err;
-			});
+			PixelHistory.saveHistoryPicture();
 		}
 	}
 
@@ -230,7 +225,7 @@ class PixelSaver {
 	static async automaticSave() {
 		try {
 			console.log("Salvando imagem...");
-			await PixelSaver.savePicture();
+			await PixelSaver.savePicture(last_identifier, last_i);
 
 			// Reseta as modificações se ficou muito grande
 			if(last_i >= options.max_changes_size) {

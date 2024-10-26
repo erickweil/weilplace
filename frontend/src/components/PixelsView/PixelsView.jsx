@@ -3,7 +3,7 @@ import NextImage from 'next/image'
 import { mesclarEstado } from '@/components/Canvas/CanvasControler'
 import CanvasPicture from "./CanvasPicture";
 import React, {memo, useEffect} from 'react'
-import { doFetchChanges, doFetchPicture, registerWebSocketListeners, removeWebSocketListeners } from "./FetchHandler";
+import { doFetchChanges, doFetchHistoryPicture, doFetchPicture, registerWebSocketListeners, removeWebSocketListeners } from "./FetchHandler";
 import { getSocketInstance } from "@/config/websocket";
 
 // https://stackoverflow.com/questions/3115982/how-to-check-if-two-arrays-are-equal-with-javascript
@@ -26,7 +26,7 @@ export const arraysEqual = (a, b) => {
 
 const PixelsView = (props) => {
 
-	const { pallete, notifyCenterPixel, onPlacePixel, options:_options, ...rest } = props
+	const { pallete, notifyCenterPixel, onPlacePixel, historyPictureUrl, options:_options, ...rest } = props
 
     const defaultOptions = {
 		spanButton: "any", // left | middle | right | any
@@ -34,6 +34,7 @@ const PixelsView = (props) => {
 		minZoomScale: 0.0625, // 1 pixel == 0.05 pixels (Tela Full HD veria 30.720x17.280 pixels de largura 'quatro imagens 8K')
 		changesDelayFetch: 1000, // quando não houve modificações
 		changesDelayFastFetch: 200, // quando acabou de acontecer modificações
+		historyMode: false, // se true, exibe o histórico de mudanças
 		DEBUG: false,
 	};
     const options = _options ? {...defaultOptions,..._options} : defaultOptions;
@@ -119,7 +120,7 @@ const PixelsView = (props) => {
 		if(estado.changesTerminouFetch) {
 			let agora = Date.now();
 			let diferenca = agora - estado.changesUltimoFetch;
-			if(diferenca > estado.changesDelayFetch) {
+			if(!estado.historyMode && diferenca > estado.changesDelayFetch) {
 				doFetchChanges(estado,false);
 				return false; // Não causa redraw
 			}
@@ -151,19 +152,28 @@ const PixelsView = (props) => {
 			changesDelayFetch: options.changesDelayFetch,
 			changesDelayFastFetch: options.changesDelayFastFetch,
 			changesNeedsRedraw: false,
+			historyMode: options.historyMode,
+			historyPictureUrl: historyPictureUrl,
 			pallete: pallete,
 			centerPixel: {x:0,y:0},
 			targetPixel: false,
 			enterPressionado: false
 		});
 
-		const socket = getSocketInstance();
-		if(socket !== null)
-		registerWebSocketListeners(socket,estado);
+		if(!estado.historyMode) {
+			const socket = getSocketInstance();
+			if(socket !== null)
+			registerWebSocketListeners(socket,estado);
+		}
 
 		//const pictureResponse = getData("picture", false)
 		//carregarImagem(estado,imagemUrl,imagemOffset,true);
-		doFetchPicture(estado,true);
+
+		if(!estado.historyMode) {
+			doFetchPicture(estado,true);
+		} else {
+			doFetchHistoryPicture(estado,true);
+		}
 	};
 
 	const onPropsChange = (estado) => {
@@ -173,14 +183,24 @@ const PixelsView = (props) => {
 		//	carregarImagem(estado,imagemUrl,imagemOffset,false);
 		//}
 
-		const socket = getSocketInstance();
-		if(socket !== null)
-		registerWebSocketListeners(socket,estado);
+		if(!estado.historyMode) {
+			const socket = getSocketInstance();
+			if(socket !== null)
+			registerWebSocketListeners(socket,estado);
+		}
 
 		if(!arraysEqual(estado.pallete,pallete)) {
 			mesclarEstado(estado, {
 				pallete: pallete
 			});
+		}
+
+		if(historyPictureUrl !== estado.historyPictureUrl) {
+			mesclarEstado(estado, {
+				historyPictureUrl: historyPictureUrl
+			});
+
+			doFetchHistoryPicture(estado,false);
 		}
 	};
 
@@ -247,7 +267,9 @@ const PixelsView = (props) => {
 	// https://dev.to/otamnitram/react-useeffect-cleanup-how-and-when-to-use-it-2hbm
 	const onDismount = (estado) => {
 		console.log("onDismount PixelsView");
-		removeWebSocketListeners(estado);
+		if(!estado.historyMode) {
+			removeWebSocketListeners(estado);
+		}
 	};
 
 	return (

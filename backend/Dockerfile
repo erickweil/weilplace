@@ -10,11 +10,15 @@ ENV PORT=3001
 ENV PUBLIC_API_URL="http://localhost:3001"
 EXPOSE 3001
 
+# Primeiro instala as dependências
+COPY package.json package-lock.json ./
+
+# Utilizar 'npm ci' em vez de 'npm install'
+# https://stackoverflow.com/questions/52499617/what-is-the-difference-between-npm-install-and-npm-ci
+RUN npm ci
+
+# Depois copia o projeto (Isto torna mais rápido o build devido ao cache)
 COPY . .
-
-RUN npm install
-
-
 
 ENTRYPOINT [ "node" ]
 

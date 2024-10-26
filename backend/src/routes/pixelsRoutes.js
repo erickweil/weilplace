@@ -279,7 +279,7 @@ router.get("/savedindex", genericRouteHandler("GET","/savedindex",true,handleGet
  *               format: binary
  */
 router.get("/picture", async (req,res) => {
-	
+	try {
 	// Envia a imagem e o offset do último save dela,
 	// assim o próximo /changes irá continuar a partir
 	// do ponto correto, mesmo que entre receber essa imagem
@@ -303,6 +303,10 @@ router.get("/picture", async (req,res) => {
 			}
 			// colocar body?
 		});
+	} catch(e) {
+		console.error(e);
+		return res.status(500).json({message: "Erro ao acessar imagem:"+e});
+	}
 });
 
 /**
@@ -326,7 +330,12 @@ router.get("/picture", async (req,res) => {
  *                     example: "ffffff"
  */
 router.get("/pallete", (req,res) => {
-	return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
+	try {
+		return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
+	} catch(e) {
+		console.error(e);
+		return res.status(500).json({message: "Erro ao acessar paleta de cores:"+e});
+	}
 });
 
 

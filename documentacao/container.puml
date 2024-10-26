@@ -1,0 +1,21 @@
+@startuml WeilplaceContainer
+!include  https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person_Ext(person, "Usuário", "Usuário comum")
+
+System_Boundary(c1, "WeilPlace") {
+    Container(web, "Aplicação Web", "NextJS", "Interface web utilizada para desenhar os pixels")
+    Container(api, "API Backend", "NodeJS/Express", "API que recebe as alterações feitas nos pixels")
+    Container(service, "Serviço Pixel Saver", "NodeJS", "Serviço que processa as mudanças e salva a imagem a cada 10 segundos")
+    ContainerDb(db, "Banco de Dados", "Redis", "Armazena a string de mudanças (apenas cache, pode ser resetado)")
+    Container(files, "Arquivos", "Sistema de arquivos", "Arquivos de imagens .png versionadas")
+}
+
+Rel(person, web, "Acessa", "HTTPS")
+Rel(web, api, "Requisições", "HTTPS Rest ou Websockets")
+Rel_D(api, db, "Registra novo pixel/Obtêm mudanças", "TCP/Redis Protocol")
+Rel(db, service, "Obtêm mudanças", "TCP/Redis Protocol")
+Rel_U(service, files, "Salva imagem", "Sistema de arquivos")
+Rel_U(files, api, "Disponibiliza imagem", "Sistema de arquivos")
+
+@enduml

@@ -5,6 +5,7 @@ import getSwaggerOptions from "../docs/head.js";
 import priv from "./privateRoutes.js";
 import teste from "./testeRoutes.js";
 import pixels from "./pixelsRoutes.js";
+import history from "./pixelHistoryRoutes.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";
 import { LOG_ROUTES } from "../config/options.js";
 
@@ -36,7 +37,8 @@ const routes = (app) => {
 	app.use(
 		teste,
 		pixels,
-		priv
+		priv,
+		history
 	);
 
 	console.log("WebSocket Handlers:\n",webSocketHandlers);
