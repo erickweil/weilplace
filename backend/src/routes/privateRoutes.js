@@ -5,8 +5,9 @@
 
 import express from "express";
 import PixelChanges from "../controller/pixelChanges.js";
-import { API_SHARED_SECRET } from "../config/options.js";
+import { API_SHARED_SECRET, IMAGE_HEIGHT, IMAGE_WIDTH } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
+import sharp from "sharp";
 
 const router = express.Router();
 
@@ -70,5 +71,25 @@ router.post("/resetchanges",secretMiddleware, async (req,res) => {
 
 router.post("/setsavedindex", secretMiddleware, genericRouteHandler("POST","/setsavedindex",false,handleSetSavedIndex));
 router.post("/resetchanges", secretMiddleware, genericRouteHandler("POST","/resetchanges",false,handleResetChanges));
+
+
+// [teste] rota para configurar
+router.post("/createpicture", secretMiddleware, async (req,res) => {
+    // Gera a imagem
+    let imgSharpObj = await sharp({
+        create: {
+            width: IMAGE_WIDTH,
+            height: IMAGE_HEIGHT,
+            channels: 3,
+            background: {r: 255, g: 255, b: 255}
+        }
+    });
+
+    let imgPixelsBuff = await imgSharpObj.png().toBuffer();
+
+    let imgPixelsBase64 = imgPixelsBuff.toString("base64");
+
+    // Salva a imagem
+});
 
 export default router;

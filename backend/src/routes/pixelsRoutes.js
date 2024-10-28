@@ -306,28 +306,7 @@ router.get("/picture", async (req,res) => {
 			// colocar body?
 		}, async (err) => {
             if(!err) return;
-
             console.error(err);
-
-            let imgSharpObj = await sharp({
-                create: {
-                    width: IMAGE_WIDTH,
-                    height: IMAGE_HEIGHT,
-                    channels: 3,
-                    background: {r: 255, g: 255, b: 255}
-                }
-            });
-    
-            let imgPixelsBuff = await imgSharpObj.png().toBuffer();
-    
-            res.status(200)
-                .setHeader("X-Changes-Offset", resp.i)
-                .setHeader("X-Changes-Identifier", resp.identifier)
-                .setHeader("Cache-Control", "no-store, must-revalidate")
-                .setHeader("Pragma", "no-cache")
-                .setHeader("Expires", "0")
-                .setHeader("Content-Type", "image/png")
-                .send(imgPixelsBuff);
         });
 });
 
