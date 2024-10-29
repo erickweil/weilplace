@@ -39,9 +39,9 @@ services:
       context: ./frontend
       args:
         - SERVERSIDE_API_URL=http://weilplace-server:3001
-        - NEXT_PUBLIC_API_URL=http://localhost:3000/backend
-        - NEXT_PUBLIC_WEBSOCKET_ENABLED=true
-        - NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:3000/backend/
+        # - NEXT_PUBLIC_API_URL=http://localhost:3000/backend
+        # - NEXT_PUBLIC_WEBSOCKET_ENABLED=true
+        # - NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:3000/backend/
     container_name: weilplace-frontend
     environment:
       PORT: "3000"
