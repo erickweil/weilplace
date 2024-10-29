@@ -86,8 +86,8 @@ build-weilplace-site:
     BUILD_DIR: "./frontend"
     BUILD_TAG: $IMG_WEILPLACE_SITE:latest
   before_script:
-    - mv ./frontend/.env.production ./frontend/.env.local
-    - echo "NEXT_PUBLIC_OAUTH2_CLIENT_ID=\"$OAUTH2_CLIENT_ID\"" >> ./backend/.env
+    - cp ./frontend/.env.production ./frontend/.env.local
+    - echo "NEXT_PUBLIC_OAUTH2_CLIENT_ID=\"$OAUTH2_CLIENT_ID\"" >> ./frontend/.env.local
 
 # https://juju.is/tutorials/using-gitlab-as-a-container-registry#7-pull-your-container
 deploy-weilplace:

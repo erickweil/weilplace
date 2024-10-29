@@ -80,9 +80,15 @@ let sessionOptions = {
 		sameSite: "strict",
 		httpOnly: true,
         secure: true,
-		maxAge: SESSION_MAX_AGE*1000 // em milissegundos
+		maxAge: SESSION_MAX_AGE*1000, // em milissegundos
 	}
 };
+
+if(process.env.NODE_ENV === "production") {
+	// Compartilhar domínio com weilplace.app.fslab.dev e weilplace-api.app.fslab.dev
+	sessionOptions.cookie.domain = ".app.fslab.dev";
+}
+
 if(REDIS_ENABLED) {
 	// Initialize store.
 	const redisStore = new RedisStore({
