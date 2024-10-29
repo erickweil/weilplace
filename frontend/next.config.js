@@ -10,7 +10,17 @@ const nextConfig = {
       ignored: ['**/node_modules','**/.git','**/.next'],
     };
     return config;
-  }
+  },
+  async rewrites() {
+    return {
+      fallback: [
+        {
+          source: "/api/:path*",
+          destination: `${process.env.SERVERSIDE_API_URL}/:path*`,
+        },
+      ],
+    };
+  },
 }
 
 module.exports = nextConfig

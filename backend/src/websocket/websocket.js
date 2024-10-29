@@ -70,13 +70,18 @@ const onConnection = (wss,ws) => {
 	ws.on("message", onMessage);
 };
 
-const initWebSocketServer = (server) => {
+const initWebSocketServer = (server, sessionParser) => {
 	const wss = new WebSocketServer({server});
 
-	wss.on("connection", (ws) => {
+	wss.on("connection", (ws, req) => {
 		ws.isAlive = true;
-		ws.session = {username:haiku()};
-		console.log(ws.session.username+" conectado.");
+
+        // https://stackoverflow.com/questions/12182651/expressjs-websocket-session-sharing
+        sessionParser(req, {}, function() {
+            ws.session = req.session;
+            console.log(ws.session?.username+" conectado.");
+        });
+
 		ws.on("error",(error) => {
 			console.log("Erro em:"+ws.session.username,error);
 		});

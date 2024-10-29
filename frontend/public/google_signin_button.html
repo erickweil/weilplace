@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GOOGLE SIGN IN</title>
+    <link id="googleidentityservice" type="text/css" media="all" href="https://accounts.google.com/gsi/style" rel="stylesheet">
+    <style>
+        body {
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 56px;
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div
+        id="g_id_onload"
+        data-client_id=""
+        data-context="signin"
+        data-ux_mode="popup"
+        data-login_uri=""
+        data-auto_prompt="false"
+        data-use_fedcm_for_prompt="true">
+    </div>
+
+    <div class="g_id_signin"
+        data-type="standard"
+        data-shape="pill"
+        data-theme="outline"
+        data-text="signin_with"
+        data-size="large"
+        data-locale="pt-BR"
+        data-logo_alignment="left">
+    </div>
+
+    <script>
+        const element = document.getElementById('g_id_onload');
+        const urlParams = new URLSearchParams(window.location.search);
+
+        element.setAttribute('data-client_id', urlParams.get('client_id'));
+        element.setAttribute('data-login_uri', urlParams.get('login_uri'));
+    </script>
+    
+    <script src="https://accounts.google.com/gsi/client"></script>    
+</body>
+</html>

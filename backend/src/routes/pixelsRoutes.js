@@ -3,6 +3,7 @@ import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
 import { PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
+import { SessionManager } from "../middleware/sessionManager.js";
 
 const router = express.Router();
 
@@ -96,12 +97,20 @@ export const handlePostPixel = async (body,session) => {
 			json: {error: "É necessário x e y para posição e c para cor"}
 		};
 
+    const userinfo = SessionManager.requireLoggedInUserInfo(session);
+    if(!userinfo) {
+        return { 
+            status: 401, 
+            json: {error: "Não logado"} 
+        };
+    }
+
 	const coord_x = parseInt(body.x);
 	const coord_y = parseInt(body.y);
 
 	const color = parseInt(body.c);
 	
-	const username = session.username;
+	const username = userinfo.username;
 
 	const resp = await PixelChanges.setPixel(username,coord_x,coord_y,color);
 	

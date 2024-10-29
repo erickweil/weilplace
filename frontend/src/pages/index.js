@@ -7,6 +7,7 @@ import PixelsView from '@/components/PixelsView/PixelsView'
 import { getApiURL } from '@/config/api'
 import PalleteColorPicker from '@/components/PalleteColorPicker'
 import { getSocketInstance, requestWebSocket } from '@/config/websocket'
+import GoogleLogin from '@/components/GoogleLogin'
 
 //const inter = Inter({ subsets: ['latin'] })
 
@@ -124,14 +125,19 @@ export default function Home() {
         />
       }
       
-      <PalleteColorPicker
-        timeToPlaceAgain={placePixelDelay}
-        pallete={pallete}
-        coordinates={centerPixelPos}
-        onPlacePixel={onPlacePixel}
-        colorIndex={colorIndex}
-        setColorIndex={setColorIndex}
-      />
+      { 
+        false ? 
+        <PalleteColorPicker
+            timeToPlaceAgain={placePixelDelay}
+            pallete={pallete}
+            coordinates={centerPixelPos}
+            onPlacePixel={onPlacePixel}
+            colorIndex={colorIndex}
+            setColorIndex={setColorIndex}
+        />
+        :
+        <GoogleLogin />
+    }
       
     </NonSSRWrapper>
     </>
