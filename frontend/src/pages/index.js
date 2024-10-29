@@ -7,6 +7,7 @@ import PixelsView from '@/components/PixelsView/PixelsView'
 import { getApiURL } from '@/config/api'
 import PalleteColorPicker from '@/components/PalleteColorPicker'
 import { getSocketInstance, requestWebSocket } from '@/config/websocket'
+import GoogleLogin from '@/components/GoogleLogin'
 
 //const inter = Inter({ subsets: ['latin'] })
 
@@ -53,6 +54,8 @@ export default function Home() {
   const [colorIndex, _setColorIndex] = useState(0);
   const colorIndexRef = useRef(colorIndex);
 
+  const [dadosUsuarioLogado, setdadosUsuarioLogado] = useState(null);
+
   const setColorIndex = (value) => {
     colorIndexRef.current = value
     _setColorIndex(value);
@@ -72,6 +75,23 @@ export default function Home() {
     }
 
     doFetchPallete();
+  }, [])
+
+  useEffect(() => {
+    const doFetchLoginCheck = () => {    
+      fetch(getApiURL("/login/check"),{credentials: 'include'})
+      .then((res) => res.json())
+      .then((json) => {
+        if(!json || json.error) {
+          console.log("Não está logado");
+        } else {
+          console.log("Dados usuário logado:",json);
+          setdadosUsuarioLogado(json);
+        }
+      });
+    }
+
+    doFetchLoginCheck();
   }, [])
 
   // Precisa usar callback porque o PixelsView é componente com memo
@@ -124,14 +144,20 @@ export default function Home() {
         />
       }
       
-      <PalleteColorPicker
-        timeToPlaceAgain={placePixelDelay}
-        pallete={pallete}
-        coordinates={centerPixelPos}
-        onPlacePixel={onPlacePixel}
-        colorIndex={colorIndex}
-        setColorIndex={setColorIndex}
-      />
+      { 
+        dadosUsuarioLogado ? 
+        <PalleteColorPicker
+            timeToPlaceAgain={placePixelDelay}
+            pallete={pallete}
+            coordinates={centerPixelPos}
+            onPlacePixel={onPlacePixel}
+            colorIndex={colorIndex}
+            setColorIndex={setColorIndex}
+        />
+        :
+        <GoogleLogin />
+    }
+
       
     </NonSSRWrapper>
     </>

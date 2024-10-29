@@ -26,7 +26,7 @@ const DatePicker = (props) => {
         }]</p>
 		</div>
 		<div className={`${styles.colorPickerTableDiv}`}>
-        <input type="range" min="0" max={totalDates-1} value={percent} onChange={handlePercentChange}  style={{width:"100%"}}/>
+        <input type="range" min="0" max={totalDates-1} value={percent} onChange={handlePercentChange}  style={{width:"98%"}}/>
 		</div>
 		</div>
 	</>

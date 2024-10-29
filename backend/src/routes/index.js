@@ -6,6 +6,7 @@ import priv from "./privateRoutes.js";
 import teste from "./testeRoutes.js";
 import pixels from "./pixelsRoutes.js";
 import history from "./pixelHistoryRoutes.js";
+import auth from "./authRoutes.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";
 import { LOG_ROUTES } from "../config/options.js";
 
@@ -29,7 +30,7 @@ const routes = (app) => {
 	}
 
 	app.get("/",(req, res) => {
-		res.status(200).redirect("/docs"); // redirecionando para documentação
+		res.status(200).redirect("docs"); // redirecionando para documentação
 	});
 
 	app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerJsDoc(getSwaggerOptions())));
@@ -38,7 +39,8 @@ const routes = (app) => {
 		teste,
 		pixels,
 		priv,
-		history
+		history,
+        auth
 	);
 
 	console.log("WebSocket Handlers:\n",webSocketHandlers);
