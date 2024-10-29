@@ -8,6 +8,7 @@ variables:
   KUBECTL_CONFIG: $KUBECTL_CONFIG
   API_SHARED_SECRET: $API_SHARED_SECRET
   SESSION_SECRET: $SESSION_SECRET
+  OAUTH2_CLIENT_ID: $OAUTH2_CLIENT_ID
 
 stages:
   - test
@@ -73,6 +74,7 @@ build-weilplace-api:
     # Não tá legal, a imagem com secret? o secret deveria estar no kubernetes não?
     - echo "SESSION_SECRET=\"$SESSION_SECRET\"" >> ./backend/.env
     - echo "API_SHARED_SECRET=\"$API_SHARED_SECRET\"" >> ./backend/.env
+    - echo "OAUTH2_CLIENT_ID=\"$OAUTH2_CLIENT_ID\"" >> ./backend/.env
 
 build-weilplace-site:
   extends: 
@@ -85,6 +87,7 @@ build-weilplace-site:
     BUILD_TAG: $IMG_WEILPLACE_SITE:latest
   before_script:
     - mv ./frontend/.env.production ./frontend/.env.local
+    - echo "NEXT_PUBLIC_OAUTH2_CLIENT_ID=\"$OAUTH2_CLIENT_ID\"" >> ./backend/.env
 
 # https://juju.is/tutorials/using-gitlab-as-a-container-registry#7-pull-your-container
 deploy-weilplace:

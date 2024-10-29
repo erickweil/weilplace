@@ -1,9 +1,10 @@
 services:
   weilplace-server:
-    build: ./backend
+    build: 
+      context: ./backend
+      args:
+        - NODE_ENV=development
     container_name: weilplace-server
-    ports:
-      - "3001:3001"
     volumes:
       - weilplace-volume-pixels:/node-app/public/pixels:ro
     environment:
@@ -14,9 +15,13 @@ services:
       REDIS_URL: "redis://weilplace-redis:6379"
       PLACE_DELAY: 0
     networks:
-      - weilplace
+      weilplace:
+        ipv4_address: 10.5.0.2
   weilplace-pixelsaver:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        - NODE_ENV=development
     container_name: weilplace-pixelsaver
     volumes:
       - weilplace-volume-pixels:/node-app/public/pixels:rw
@@ -27,34 +32,50 @@ services:
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
     networks:
-      - weilplace
+      weilplace:
+        ipv4_address: 10.5.0.3
   weilplace-frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+        - SERVERSIDE_API_URL=http://weilplace-server:3001
+        - NEXT_PUBLIC_API_URL=http://localhost:3000/backend
+        - NEXT_PUBLIC_WEBSOCKET_ENABLED=true
+        - NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:3000/backend/
     container_name: weilplace-frontend
-    ports:
-      - "3000:3000"
     environment:
       PORT: "3000"
       SERVERSIDE_API_URL: "http://weilplace-server:3001"
-      NEXT_PUBLIC_API_URL: "http://127.0.0.1:3001"
-
-      # Websockets
-      NEXT_PUBLIC_WEBSOCKET_ENABLED: "true"
-      NEXT_PUBLIC_WEBSOCKET_URL: "ws://127.0.0.1:3001"
       # Especifica o caminho que irá buscar os assets, para
       # hospedar o site em um subpath /algumacoisa
       ASSET_PREFIX: ""
     networks:
-      - weilplace
+      weilplace:
+        ipv4_address: 10.5.0.4
   weilplace-redis:
     image: redis
     container_name: weilplace-redis
     networks:
-      - weilplace
-      
+      weilplace:
+        ipv4_address: 10.5.0.5
+  weilplace-nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: weilplace-nginx
+    ports:
+      - "3000:80"
+    networks:
+      weilplace:
+        ipv4_address: 10.5.0.6
+
 volumes:
   weilplace-volume-pixels:
 
 networks:
   weilplace:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1

@@ -54,6 +54,8 @@ export default function Home() {
   const [colorIndex, _setColorIndex] = useState(0);
   const colorIndexRef = useRef(colorIndex);
 
+  const [dadosUsuarioLogado, setdadosUsuarioLogado] = useState(null);
+
   const setColorIndex = (value) => {
     colorIndexRef.current = value
     _setColorIndex(value);
@@ -73,6 +75,23 @@ export default function Home() {
     }
 
     doFetchPallete();
+  }, [])
+
+  useEffect(() => {
+    const doFetchLoginCheck = () => {    
+      fetch(getApiURL("/login/check"),{credentials: 'include'})
+      .then((res) => res.json())
+      .then((json) => {
+        if(!json || json.error) {
+          console.log("Não está logado");
+        } else {
+          console.log("Dados usuário logado:",json);
+          setdadosUsuarioLogado(json);
+        }
+      });
+    }
+
+    doFetchLoginCheck();
   }, [])
 
   // Precisa usar callback porque o PixelsView é componente com memo
@@ -126,7 +145,7 @@ export default function Home() {
       }
       
       { 
-        false ? 
+        dadosUsuarioLogado ? 
         <PalleteColorPicker
             timeToPlaceAgain={placePixelDelay}
             pallete={pallete}
@@ -138,6 +157,7 @@ export default function Home() {
         :
         <GoogleLogin />
     }
+
       
     </NonSSRWrapper>
     </>

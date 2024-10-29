@@ -30,7 +30,7 @@ const routes = (app) => {
 	}
 
 	app.get("/",(req, res) => {
-		res.status(200).redirect("/docs"); // redirecionando para documentação
+		res.status(200).redirect("docs"); // redirecionando para documentação
 	});
 
 	app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerJsDoc(getSwaggerOptions())));

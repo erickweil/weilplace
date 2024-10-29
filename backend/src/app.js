@@ -77,8 +77,8 @@ let sessionOptions = {
 	resave: true,
 	saveUninitialized: true,
 	cookie: {
-		sameSite: "none",
-		httpOnly: false,
+		sameSite: "strict",
+		httpOnly: true,
         secure: true,
 		maxAge: SESSION_MAX_AGE*1000 // em milissegundos
 	}

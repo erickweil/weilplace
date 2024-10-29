@@ -42,9 +42,23 @@ export default async function handler(req, res) {
     }
 
     console.log("Logado com sucesso:", json);
-    console.log("Cookies do /login:", fetchRes.headers.getSetCookie());
 
-    // https://github.com/vercel/next.js/discussions/48434
-    res.setHeader("Set-Cookie", fetchRes.headers.getSetCookie());
-    res.redirect(307, "/?login=success");
+    const cookiesLogin = fetchRes.headers.getSetCookie();
+    if(cookiesLogin && cookiesLogin.length > 0) {
+        console.log("Cookies do /login:", cookiesLogin);
+
+        // https://github.com/vercel/next.js/discussions/48434
+        res.setHeader("Set-Cookie", fetchRes.headers.getSetCookie());
+    } else {
+        console.log("Não setou nenhum cookie a mais");
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/303
+    /*
+        when a user agent receives a 302 in response to a POST request, it uses the GET method in the subsequent redirection request, as permitted by the HTTP specification.
+        In cases where you want any request method to be changed to GET, use 303 See Other. This is useful when you want to give a response to a PUT method that is not the uploaded resource but a confirmation message such as: "you successfully uploaded XYZ". 
+
+        This response code is often sent back as a result of PUT or POST methods so the client may retrieve a confirmation, or view a representation of a real-world object (see HTTP range-14). The method to retrieve the redirected resource is always GET. 
+    */
+    res.redirect(303, "/");
 }
