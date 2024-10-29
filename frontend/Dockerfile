@@ -1,10 +1,6 @@
 # https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 # https://www.youtube.com/watch?v=dtLpWR98HfE
 ARG NODE_ENV=production
-ARG SERVERSIDE_API_URL=http://127.0.0.1:3001
-ARG NEXT_PUBLIC_API_URL=http://localhost:3000/api
-ARG NEXT_PUBLIC_WEBSOCKET_ENABLED=true
-ARG NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:3000/api
 
 # ===============================================================
 # Primeiro estágio: Instalação das dependências
