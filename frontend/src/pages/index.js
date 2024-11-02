@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import NextImage from 'next/image'
 import { Inter } from 'next/font/google'
+import styles from '@/styles/Pixels.module.css'
 import NonSSRWrapper from '@/components/no-ssr-wrapper'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import PixelsView from '@/components/PixelsView/PixelsView'
@@ -8,6 +9,7 @@ import { getApiURL } from '@/config/api'
 import PalleteColorPicker from '@/components/PalleteColorPicker'
 import { getSocketInstance, requestWebSocket } from '@/config/websocket'
 import GoogleLogin from '@/components/GoogleLogin'
+import Link from 'next/link'
 
 //const inter = Inter({ subsets: ['latin'] })
 
@@ -43,6 +45,8 @@ export const doPixelPost = async (x,y,c) => {
 export default function Home() {
   console.log("Bom dia!");
 
+  const precisaLogin = process.env.NEXT_PUBLIC_REQUIRE_GOOGLE_LOGIN === "true";
+
   // https://nextjs.org/docs/basic-features/data-fetching/client-side
   const [pallete, setPallete] = useState(false);
 
@@ -57,7 +61,11 @@ export default function Home() {
   const [dadosUsuarioLogado, setdadosUsuarioLogado] = useState(null);
 
   const setColorIndex = (value) => {
-    colorIndexRef.current = value
+    if(value < 0) {
+      colorIndexRef.current = (colorIndexRef.current + 1) % pallete.length;
+    } else {
+      colorIndexRef.current = value
+    }
     _setColorIndex(value);
   };
 
@@ -77,6 +85,7 @@ export default function Home() {
     doFetchPallete();
   }, [])
 
+  // Mesmo não precisando login, /login/check irá obter o nome haiku() aleatório gerado na API
   useEffect(() => {
     const doFetchLoginCheck = () => {    
       fetch(getApiURL("/login/check"),{credentials: 'include'})
@@ -128,7 +137,6 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <NonSSRWrapper>
-
       { 
         pallete === false ? <p>Carregando...</p> :
         <PixelsView
@@ -140,12 +148,18 @@ export default function Home() {
           pallete={pallete} 
           options={pixelsViewOptions}
           notifyCenterPixel={notifyCenterPixel}
+          onChangeColor={setColorIndex}
           onPlacePixel={onPlacePixel}
         />
       }
+
+      <div className={`${styles.topLinkInfo}`}>
+        <Link href="/historico">Histórico</Link>      
+        <Link href={getApiURL("/picture")} download>Baixar</Link>
+      </div>
       
       { 
-        dadosUsuarioLogado ? 
+        (!precisaLogin || dadosUsuarioLogado) ? 
         <PalleteColorPicker
             timeToPlaceAgain={placePixelDelay}
             pallete={pallete}
@@ -156,7 +170,7 @@ export default function Home() {
         />
         :
         <GoogleLogin />
-    }
+      }
 
       
     </NonSSRWrapper>

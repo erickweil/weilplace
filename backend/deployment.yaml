@@ -14,6 +14,7 @@ data:
   WEBSOCKET_ENABLED: "true"
   REDIS_URL: "redis://weilplace-redis:6379"
   PUBLIC_API_URL: "https://weilplace.app.fslab.dev/backend"
+  REQUIRE_GOOGLE_LOGIN: "true"
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -1,14 +1,12 @@
 import * as dotenv from "dotenv"; // necessário para leitura do arquivo de variáveis
 import makeFetchCookie from "fetch-cookie";
-import { PUBLIC_API_URL, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, initOptions } from "../config/options.js";
+import { PUBLIC_API_URL, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE } from "../config/options.js";
 import { handlePostPixel } from "../routes/pixelsRoutes.js";
 import { haiku } from "../middleware/sessionManager.js";
 import { connectToRedis } from "../config/redisConnection.js";
 import PixelChanges from "../controller/pixelChanges.js";
 
 dotenv.config();
-
-initOptions();
 
 class BotPlacer {
 

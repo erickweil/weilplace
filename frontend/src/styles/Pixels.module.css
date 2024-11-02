@@ -113,6 +113,20 @@
 	}
 }
 
+.topLinkInfo {
+	position: fixed;
+	padding:0.5em;
+	top: 0;
+	left: 0;
+	
+	text-align: left;
+}
+
+.topLinkInfo a {
+	display: inline;
+	padding: 10px;
+}
+
 /*.picture {
 	object-fit: contain;
 	image-rendering: pixelated;
