@@ -55,7 +55,12 @@
 
 	border-top-left-radius: 32px;
 	border-top-right-radius: 32px;
-	padding: 1em;
+	padding-bottom: 0.5em;
+	padding-left: 1.5em;
+	padding-right: 1.5em;
+
+	box-sizing: border-box;
+	max-width: 100%;
 }
 
 .colorPickerTableDiv
