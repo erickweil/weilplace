@@ -2,6 +2,7 @@
 // https://stackoverflow.com/questions/7666516/fancy-name-generator-in-node-js
 
 import { readFileSync } from "fs";
+import { REQUIRE_GOOGLE_LOGIN } from "../config/options.js";
 const PATH_NOMES = process.env.PATH_NOMES || "./public/nomes.json";
 const NOMES = JSON.parse(readFileSync(PATH_NOMES,"utf8"));
 
@@ -18,6 +19,7 @@ export class SessionManager {
 
 		if(!req.session.username) {	
 			req.session.username = haiku();
+            req.session.userinfo = null;
             req.session.save();
 		}
 
@@ -74,16 +76,24 @@ export class SessionManager {
         return {
             hasSession: true,
             loggedIn: true,
-            userinfo: session.userinfo
+            userinfo: { ...session.userinfo, ...{ username: session.username } }
         };
     }
 
     static requireLoggedInUserInfo(session) {
         const { hasSession, loggedIn, userinfo } = SessionManager.checkSession(session);
-        if(!hasSession || !loggedIn) {
-            return undefined;
-        }
+        if(REQUIRE_GOOGLE_LOGIN) {
+            if(!hasSession || !loggedIn) {
+                return undefined;
+            }
 
-        return userinfo;
+            return userinfo;
+        } else {
+            if(!hasSession) {
+                return undefined;
+            }
+
+            return userinfo;
+        }
     }
 }

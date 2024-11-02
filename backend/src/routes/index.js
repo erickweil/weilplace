@@ -13,7 +13,7 @@ import { LOG_ROUTES } from "../config/options.js";
 export const logRoutes = (req,res,next) => {
 	const timestamp = new Date().toISOString();
 
-	const username = req.session.username;
+	const username = req.session?.username;
 
 	let ip = req.headers["x-forwarded-for"] ||
 	req.socket.remoteAddress ||

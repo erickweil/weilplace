@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import NextImage from 'next/image'
 import { Inter } from 'next/font/google'
+import styles from '@/styles/Pixels.module.css'
 import NonSSRWrapper from '@/components/no-ssr-wrapper'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import PixelsView from '@/components/PixelsView/PixelsView'
@@ -8,6 +9,7 @@ import { getApiURL } from '@/config/api'
 import PalleteColorPicker from '@/components/PalleteColorPicker'
 import { getSocketInstance, requestWebSocket } from '@/config/websocket'
 import GoogleLogin from '@/components/GoogleLogin'
+import Link from 'next/link'
 
 //const inter = Inter({ subsets: ['latin'] })
 
@@ -43,6 +45,8 @@ export const doPixelPost = async (x,y,c) => {
 export default function Home() {
   console.log("Bom dia!");
 
+  const precisaLogin = process.env.NEXT_PUBLIC_REQUIRE_GOOGLE_LOGIN === "true";
+
   // https://nextjs.org/docs/basic-features/data-fetching/client-side
   const [pallete, setPallete] = useState(false);
 
@@ -55,11 +59,6 @@ export default function Home() {
   const colorIndexRef = useRef(colorIndex);
 
   const [dadosUsuarioLogado, setdadosUsuarioLogado] = useState(null);
-
-  const setColorIndex = (value) => {
-    colorIndexRef.current = value
-    _setColorIndex(value);
-  };
 
   useEffect(() => {
     const doFetchPallete = () => {    
@@ -77,6 +76,7 @@ export default function Home() {
     doFetchPallete();
   }, [])
 
+  // Mesmo não precisando login, /login/check irá obter o nome haiku() aleatório gerado na API
   useEffect(() => {
     const doFetchLoginCheck = () => {    
       fetch(getApiURL("/login/check"),{credentials: 'include'})
@@ -117,6 +117,19 @@ export default function Home() {
     }
   }, [colorIndexRef,centerPixelPosRef,setplacePixelDelay]);
 
+  const setColorIndex = useCallback((value) => {
+    if(value < 0) {
+      if(value === -1) {
+        colorIndexRef.current = (colorIndexRef.current + 1) % pallete.length;
+      } else {
+        colorIndexRef.current = colorIndexRef.current === 0 ? pallete.length -1 : colorIndexRef.current - 1;
+      }
+    } else {
+      colorIndexRef.current = value
+    }
+    _setColorIndex(colorIndexRef.current);
+  }, [colorIndexRef, pallete, _setColorIndex]);
+
   return (
     <>
       <Head>
@@ -128,7 +141,6 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <NonSSRWrapper>
-
       { 
         pallete === false ? <p>Carregando...</p> :
         <PixelsView
@@ -136,16 +148,23 @@ export default function Home() {
         // Tem que ser valores que NÃO IRÃO MUDAR quando o componente atualizar qualquer coisinha
         // qualquer callback tem que usar o useCallback para não ser um objeto diferente cada vez
         // Não que irá parar de funcionar mas fica muito lento se fizer redraw a cada frame por exemplo (tipo muito lento mesmo completamente atoa)
+        // Atualização: Para de funcionar mesmo, perde o callback do publishchanges que chega via websockets
         
           pallete={pallete} 
           options={pixelsViewOptions}
           notifyCenterPixel={notifyCenterPixel}
+          onChangeColor={setColorIndex}
           onPlacePixel={onPlacePixel}
         />
       }
+
+      <div className={`${styles.topLinkInfo}`}>
+        <Link href="/historico">Histórico</Link>      
+        <Link href={getApiURL("/picture")} download>Baixar</Link>
+      </div>
       
       { 
-        dadosUsuarioLogado ? 
+        (!precisaLogin || dadosUsuarioLogado) ? 
         <PalleteColorPicker
             timeToPlaceAgain={placePixelDelay}
             pallete={pallete}
@@ -156,7 +175,7 @@ export default function Home() {
         />
         :
         <GoogleLogin />
-    }
+      }
 
       
     </NonSSRWrapper>

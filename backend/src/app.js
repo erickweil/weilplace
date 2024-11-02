@@ -31,21 +31,22 @@ const server = http.createServer(app);
 if(process.env.NODE_ENV != "production") // Apenas durante desenvolvimento para testar
 {
 	app.use(express.static("public"));
-
-    // Só quando é localhost, deve 'fingir' que é https para poder enviar o cookie
-    app.use((req,res,next) => {
-        //  Secure Flag cannot be set for unproxied localhost #837 
-        // https://github.com/expressjs/session/issues/837
-        // A ideia é que para o cookie ser enviado, o secure tem que ser true, pois express.session tá com bug
-        // que mesmo quando é localhost ele não envia o cookie se secure for false
-        if(!req.secure) {
-            let objValue = Object.create(null);
-            objValue.value = true;
-            Object.defineProperty(req, "secure", objValue);
-        }
-        next();
-    });
 }
+
+// Só quando é localhost, deve 'fingir' que é https para poder enviar o cookie
+// Mas por enquanto, devido ao proxy nginx isso é necessário no deploy também...
+app.use((req,res,next) => {
+	//  Secure Flag cannot be set for unproxied localhost #837 
+	// https://github.com/expressjs/session/issues/837
+	// A ideia é que para o cookie ser enviado, o secure tem que ser true, pois express.session tá com bug
+	// que mesmo quando é localhost ele não envia o cookie se secure for false
+	if(!req.secure) {
+		let objValue = Object.create(null);
+		objValue.value = true;
+		Object.defineProperty(req, "secure", objValue);
+	}
+	next();
+});
 
 // Habilita o CORS para todas as origens
 app.use(cors({
@@ -84,10 +85,10 @@ let sessionOptions = {
 	}
 };
 
-if(process.env.NODE_ENV === "production") {
+//if(process.env.NODE_ENV === "production") {
 	// Compartilhar domínio com weilplace.app.fslab.dev e weilplace-api.app.fslab.dev
-	sessionOptions.cookie.domain = ".app.fslab.dev";
-}
+	//sessionOptions.cookie.domain = ".app.fslab.dev";
+//}
 
 if(REDIS_ENABLED) {
 	// Initialize store.

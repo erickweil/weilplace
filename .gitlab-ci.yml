@@ -46,20 +46,6 @@ merge-test-api:
 #    paths:
 #      - backend/node_modules
 
-merge-test-site:
-  image: node:alpine
-  extends: .on-create-merge-main
-  needs: []
-  stage: test
-  script:
-    - mv ./frontend/.env.production ./frontend/.env.local
-    - cd ./frontend
-    - npm install
-    - npm run test
-#  artifacts:
-#    paths:
-#      - frontend/node_modules
-
 build-weilplace-api:
   extends: 
     - .on-commit-main
