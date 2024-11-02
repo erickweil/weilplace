@@ -25,10 +25,12 @@ const DatePicker = (props) => {
             dateTime.toLocaleString()
         }]</p>
 		</div>
+        <div className={`${styles.colorPickerDiv}`} style={{display: "block"}}>
 		<div className={`${styles.colorPickerTableDiv}`}>
         <input type="range" min="0" max={totalDates-1} value={percent} onChange={handlePercentChange}  style={{width:"98%"}}/>
 		</div>
 		</div>
+        </div>
 	</>
 	)
 };

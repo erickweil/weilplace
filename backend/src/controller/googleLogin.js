@@ -12,7 +12,7 @@ client = new OAuth2Client(OAUTH2_CLIENT_ID);
 class GoogleLogin {
     // https://developers.google.com/identity/gsi/web/guides/verify-google-id-token#using-a-google-api-client-library
     static async verify(credential, session) {
-        if(REQUIRE_GOOGLE_LOGIN) {
+        if(!REQUIRE_GOOGLE_LOGIN) {
             throw new Error("Login com Google desativado");
         }
 
