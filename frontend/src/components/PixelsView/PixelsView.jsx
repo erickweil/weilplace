@@ -238,7 +238,11 @@ const PixelsView = (props) => {
 				break;
 			case "Tab":
 				e.preventDefault();
-				onChangeColor(-1);
+				if(e.shiftKey) {
+					onChangeColor(-2);
+				} else {
+					onChangeColor(-1);
+				}
 				break;
 		}
 

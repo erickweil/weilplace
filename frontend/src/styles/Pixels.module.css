@@ -22,8 +22,7 @@
 
 .colorPicker {
 	position: fixed;
-	background-color:white;
-	padding:0.5em;
+	
 	bottom: 0;
 	left: 0;
 	right: 0;
@@ -32,11 +31,31 @@
 }
 
 .colorPickerTxt {
+	display: inline-block;
+	background-color: white;
 
+	border: 3px solid #eee;
+	border-radius: 64px;
+	box-shadow:  2px 4px 6px #666;
+
+	margin-bottom: 1em;
+	padding-left: 1em;
+	padding-right: 1em;
 }
 
 .center {
   text-align: center;
+}
+
+.colorPickerDiv {
+	display: inline-block;
+	background-color: white;
+
+	border: 3px solid #eee;
+
+	border-top-left-radius: 32px;
+	border-top-right-radius: 32px;
+	padding: 1em;
 }
 
 .colorPickerTableDiv
@@ -125,6 +144,14 @@
 .topLinkInfo a {
 	display: inline;
 	padding: 10px;
+
+	color: #ddd;
+	text-decoration: none;
+}
+
+.topLinkInfo a:hover {
+	color: #0000EE;
+	text-decoration: underline;
 }
 
 /*.picture {

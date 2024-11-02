@@ -90,6 +90,8 @@ const PalleteColorPicker = (props) => {
 		<div className={`${styles.colorPickerTxt}`}>
 		<p className={`${styles.coordinates}`}>[{coordinates.x},{coordinates.y}]</p>
 		</div>
+		<br/>
+		<div className={`${styles.colorPickerDiv}`}>
 		<div className={`${styles.colorPickerTableDiv}`}>
 		<table className={`${styles.colorPickerTable}`}>
 		<tbody>
@@ -113,6 +115,7 @@ const PalleteColorPicker = (props) => {
 		className={`${styles.button}`}
 		onClick={placePixel}
 		>✓</button>
+		</div>
 		</div>
 		</div>
 	</>

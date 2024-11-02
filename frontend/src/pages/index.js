@@ -60,15 +60,6 @@ export default function Home() {
 
   const [dadosUsuarioLogado, setdadosUsuarioLogado] = useState(null);
 
-  const setColorIndex = (value) => {
-    if(value < 0) {
-      colorIndexRef.current = (colorIndexRef.current + 1) % pallete.length;
-    } else {
-      colorIndexRef.current = value
-    }
-    _setColorIndex(value);
-  };
-
   useEffect(() => {
     const doFetchPallete = () => {    
       fetch(getApiURL("/pallete"),{credentials: 'include'})
@@ -126,6 +117,19 @@ export default function Home() {
     }
   }, [colorIndexRef,centerPixelPosRef,setplacePixelDelay]);
 
+  const setColorIndex = useCallback((value) => {
+    if(value < 0) {
+      if(value === -1) {
+        colorIndexRef.current = (colorIndexRef.current + 1) % pallete.length;
+      } else {
+        colorIndexRef.current = colorIndexRef.current === 0 ? pallete.length -1 : colorIndexRef.current - 1;
+      }
+    } else {
+      colorIndexRef.current = value
+    }
+    _setColorIndex(colorIndexRef.current);
+  }, [colorIndexRef, pallete, _setColorIndex]);
+
   return (
     <>
       <Head>
@@ -144,6 +148,7 @@ export default function Home() {
         // Tem que ser valores que NÃO IRÃO MUDAR quando o componente atualizar qualquer coisinha
         // qualquer callback tem que usar o useCallback para não ser um objeto diferente cada vez
         // Não que irá parar de funcionar mas fica muito lento se fizer redraw a cada frame por exemplo (tipo muito lento mesmo completamente atoa)
+        // Atualização: Para de funcionar mesmo, perde o callback do publishchanges que chega via websockets
         
           pallete={pallete} 
           options={pixelsViewOptions}
