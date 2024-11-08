@@ -1,9 +1,12 @@
 
 // https://stackoverflow.com/questions/7666516/fancy-name-generator-in-node-js
 
-import { readFileSync } from "fs";
-const PATH_NOMES = process.env.PATH_NOMES || "./public/nomes.json";
-const NOMES = JSON.parse(readFileSync(PATH_NOMES,"utf8"));
+// import { readFileSync } from "fs";
+import { nomesJson } from "../config/nomes";
+
+//const PATH_NOMES = process.env.PATH_NOMES || "./public/nomes.json";
+//const NOMES = JSON.parse(readFileSync(PATH_NOMES,"utf8"));
+const NOMES = nomesJson;
 
 export const haiku = () =>{  
 	const nome = NOMES.nomes[Math.floor(Math.random()*(NOMES.nomes.length-1))];
