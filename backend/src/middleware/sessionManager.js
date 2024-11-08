@@ -3,7 +3,7 @@
 
 import { REQUIRE_GOOGLE_LOGIN } from "../config/options.js";
 // import { readFileSync } from "fs";
-import { nomesJson } from "../config/nomes";
+import { nomesJson } from "../config/nomes.js";
 
 //const PATH_NOMES = process.env.PATH_NOMES || "./public/nomes.json";
 //const NOMES = JSON.parse(readFileSync(PATH_NOMES,"utf8"));
