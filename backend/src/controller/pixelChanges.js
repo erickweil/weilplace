@@ -5,7 +5,6 @@ import { convertChangeToBase64 } from "../config/changesProtocol.js";
 import RedisMock from "./redisMock.js";
 import { defineScript } from "redis";
 import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE } from "../config/options.js";
-import path from "path";
 
 let KEY_IDENTIFIER = "changesid";
 let KEY_SAVEDINDEX = "savedindex";
@@ -75,7 +74,7 @@ class PixelChanges {
 			// https://github.com/redis/node-redis/blob/master/examples/lua-multi-incr.js
 			resetchanges: defineScript({
 				NUMBER_OF_KEYS: 3,
-				//SCRIPT: readFileSync(path.join(process.cwd(),"./lua/resetChanges.lua"),"utf8"),
+				//SCRIPT: readFileSync("./lua/resetChanges.lua","utf8"),
 				SCRIPT: resetChangesScript,
 				transformArguments(key1,key2,key3,arg1,arg2,arg3) {
 					return [key1,key2,key3,""+arg1,""+arg2,""+arg3];

@@ -5,15 +5,16 @@ metadata:
 data:
   PORT: "3001"
   LOG_ROUTES: "false"
-  IMAGE_WIDTH: "1024"
-  IMAGE_HEIGHT: "1024"
+  IMAGE_WIDTH: "256"
+  IMAGE_HEIGHT: "256"
   PLACE_DELAY: "0"
   SAVE_HISTORY: "true"
   PATH_PICTURE: "./public/pixels/picture.png"
   REDIS_ENABLED: "true"
   WEBSOCKET_ENABLED: "true"
   REDIS_URL: "redis://weilplace-redis:6379"
-  PUBLIC_API_URL: "https://weilplace-api.app.fslab.dev"
+  PUBLIC_API_URL: "https://weilplace.app.fslab.dev/backend"
+  REQUIRE_GOOGLE_LOGIN: "true"
 ---
 apiVersion: apps/v1
 kind: Deployment

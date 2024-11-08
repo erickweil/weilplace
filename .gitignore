@@ -1,1 +1,3 @@
 .kompose/
+*.secret*
+.vercel

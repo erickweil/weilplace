@@ -41,7 +41,7 @@ const imagemCarregou = (estado, myImg, url, imagemOffset, identifier, centraliza
         }
     });
 
-    if(estado.changesTerminouFetch)
+    if(estado.changesTerminouFetch && !estado.historyMode)
     doFetchChanges(estado,true);
 };
 
@@ -71,6 +71,36 @@ export const doFetchPicture = (estado,centralizar) => {
             const imgObjectURL = URL.createObjectURL(blob);
 
             console.log("Carregou a imagem, offset %d",offset);
+            carregarImagem(estado,imgObjectURL,offset,identifier,centralizar);
+        } finally {
+            estado.changesTerminouFetch = true;
+            estado.changesUltimoFetch = Date.now();
+        }
+    })
+    .catch((error) => {
+        estado.changesTerminouFetch = true;
+        estado.changesUltimoFetch = Date.now();
+        console.log(error);
+    });
+}
+
+export const doFetchHistoryPicture = (estado,centralizar) => { 
+    estado.changesTerminouFetch = false;
+
+    fetch(getApiURL("/history/"+estado.historyPictureUrl),{method:"GET",credentials: 'include'})
+    .then((res) => Promise.all([res,res.blob()]))
+    .then(([res,blob]) => {
+        try {
+            if(!blob) {
+                console.log("Não foi possível carregar a imagem.")
+                return
+            }
+
+            const offset = 0;
+            const identifier = "?";
+            const imgObjectURL = URL.createObjectURL(blob);
+
+            console.log("Carregou a imagem:",estado.historyPictureUrl);
             carregarImagem(estado,imgObjectURL,offset,identifier,centralizar);
         } finally {
             estado.changesTerminouFetch = true;

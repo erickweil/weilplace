@@ -26,6 +26,7 @@
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "fetch-cookie": "^2.1.0",
+    "google-auth-library": "^9.14.2",
     "node-cron": "^3.0.2",
     "nodemon": "^2.0.22",
     "redis": "^4.6.6",

@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from "ws"; //https://www.npmjs.com/package/ws
-import { haiku } from "../middleware/sessionManager.js";
+import { SessionManager, haiku } from "../middleware/sessionManager.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";
 import { setupPublishChanges } from "./wsPublishChanges.js";
 import { LOG_ROUTES } from "../config/options.js";
@@ -46,16 +46,14 @@ const onConnection = (wss,ws) => {
 		}
 
 		// será que precisa pensar em pesquisar esses valores ou algo assim?
-		const session = {
-			username:ws.session.username
-		};
+		const session = ws.session;
 
 		if(LOG_ROUTES) {
 			const timestamp = new Date().toISOString();
-			console.log(timestamp+" "+session.username+" websocket: "+method+" "+route+" ",json);
+			console.log(timestamp+" "+session?.username+" websocket: "+method+" "+route+" ",json);
 		}
 
-		const resp = await handler(json,session);	
+		const resp = await handler(json,session);
 		if(resp.status == 200) {
 			ws.send(JSON.stringify({
 				[json.post ? "post" : "get"]: route,
@@ -70,31 +68,40 @@ const onConnection = (wss,ws) => {
 	ws.on("message", onMessage);
 };
 
-const initWebSocketServer = (server) => {
+const initWebSocketServer = (server, sessionParser) => {
 	const wss = new WebSocketServer({server});
 
-	wss.on("connection", (ws) => {
+	wss.on("connection", (ws, req) => {
 		ws.isAlive = true;
-		ws.session = {username:haiku()};
-		console.log(ws.session.username+" conectado.");
+
 		ws.on("error",(error) => {
-			console.log("Erro em:"+ws.session.username,error);
+			console.log("Erro em:"+ws.session?.username,error);
 		});
 		ws.on("pong", () => {
 			//console.log("Recebeu pong de "+ws.session.username);
 			ws.isAlive = true;
 		});
 		ws.on("close", () => {
-			console.log(ws.session.username+" desconectou.");
+			console.log(ws.session?.username+" desconectou.");
 		});
-		onConnection(wss,ws);
+
+		// https://stackoverflow.com/questions/12182651/expressjs-websocket-session-sharing
+        sessionParser(req, {}, function() {
+			SessionManager.initSession(req, null, () => {});
+
+			ws.session = req.session;
+            console.log(ws.session?.username+" conectado.");
+
+
+			onConnection(wss,ws);
+        });
 	});
 
 	// Ping https://www.npmjs.com/package/ws#how-to-detect-and-close-broken-connections
 	const interval = setInterval(() => {
 		wss.clients.forEach((ws) => {
 			if (ws.isAlive === false) {
-				console.log("Fechando conexão quebrada de "+ws.session.username);
+				console.log("Fechando conexão quebrada de "+ws.session?.username);
 				return ws.terminate(); // ws.readyState !== WebSocket.OPEN
 			}
 

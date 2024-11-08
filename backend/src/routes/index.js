@@ -5,13 +5,15 @@ import getSwaggerOptions from "../docs/head.js";
 import priv from "./privateRoutes.js";
 import teste from "./testeRoutes.js";
 import pixels from "./pixelsRoutes.js";
+import history from "./pixelHistoryRoutes.js";
+import auth from "./authRoutes.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";
 import { LOG_ROUTES } from "../config/options.js";
 
 export const logRoutes = (req,res,next) => {
 	const timestamp = new Date().toISOString();
 
-	const username = req.session.username;
+	const username = req.session?.username;
 
 	let ip = req.headers["x-forwarded-for"] ||
 	req.socket.remoteAddress ||
@@ -28,7 +30,7 @@ const routes = (app) => {
 	}
 
 	app.get("/",(req, res) => {
-		res.status(200).redirect("/docs"); // redirecionando para documentação
+		res.status(200).redirect("docs"); // redirecionando para documentação
 	});
 
 	app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerJsDoc(getSwaggerOptions())));
@@ -36,7 +38,9 @@ const routes = (app) => {
 	app.use(
 		teste,
 		pixels,
-		priv
+		priv,
+		history,
+        auth
 	);
 
 	console.log("WebSocket Handlers:\n",webSocketHandlers);

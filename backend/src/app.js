@@ -29,7 +29,24 @@ const app = express();
 const server = http.createServer(app);
 
 if(process.env.NODE_ENV != "production") // Apenas durante desenvolvimento para testar
+{
 	app.use(express.static("public"));
+}
+
+// Só quando é localhost, deve 'fingir' que é https para poder enviar o cookie
+// Mas por enquanto, devido ao proxy nginx isso é necessário no deploy também...
+app.use((req,res,next) => {
+	//  Secure Flag cannot be set for unproxied localhost #837 
+	// https://github.com/expressjs/session/issues/837
+	// A ideia é que para o cookie ser enviado, o secure tem que ser true, pois express.session tá com bug
+	// que mesmo quando é localhost ele não envia o cookie se secure for false
+	if(!req.secure) {
+		let objValue = Object.create(null);
+		objValue.value = true;
+		Object.defineProperty(req, "secure", objValue);
+	}
+	next();
+});
 
 // Habilita o CORS para todas as origens
 app.use(cors({
@@ -49,18 +66,30 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Depois tem que fazer a sessão salvar no redis
+// TESTE: para não ficar fazendo log e criando sessão
+app.get("/favicon.ico", (req,res) => {
+    return res.sendStatus(204);
+});
 
+
+// Depois tem que fazer a sessão salvar no redis
 let sessionOptions = {
 	secret: SESSION_SECRET,
 	resave: true,
 	saveUninitialized: true,
 	cookie: {
 		sameSite: "strict",
-		httpOnly: false,
-		maxAge: SESSION_MAX_AGE*1000 // em milissegundos
+		httpOnly: true,
+        secure: true,
+		maxAge: SESSION_MAX_AGE*1000, // em milissegundos
 	}
 };
+
+//if(process.env.NODE_ENV === "production") {
+	// Compartilhar domínio com weilplace.app.fslab.dev e weilplace-api.app.fslab.dev
+	//sessionOptions.cookie.domain = ".app.fslab.dev";
+//}
+
 if(REDIS_ENABLED) {
 	// Initialize store.
 	const redisStore = new RedisStore({
@@ -71,13 +100,14 @@ if(REDIS_ENABLED) {
 
 	sessionOptions.store = redisStore;
 }
-app.use(session(sessionOptions));
+const sessionParser = session(sessionOptions);
+app.use(sessionParser);
 
 app.use(SessionManager.initSession);
 
 // Websockets
 if(WEBSOCKET_ENABLED) {
-	const wss = initWebSocketServer(server);
+	const wss = initWebSocketServer(server, sessionParser);
 }
 
 // Passando para o arquivo de rotas o app, que envia junto uma instância do express

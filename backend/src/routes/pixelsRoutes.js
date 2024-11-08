@@ -1,10 +1,9 @@
 import express from "express";
 import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
-import { IMAGE_HEIGHT, IMAGE_WIDTH, PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
+import { PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
-import { palleteJson } from "../config/pallete.js";
-import sharp from "sharp";
+import { SessionManager } from "../middleware/sessionManager.js";
 
 const router = express.Router();
 
@@ -98,12 +97,20 @@ export const handlePostPixel = async (body,session) => {
 			json: {error: "É necessário x e y para posição e c para cor"}
 		};
 
+    const userinfo = SessionManager.requireLoggedInUserInfo(session);
+    if(!userinfo) {
+        return { 
+            status: 401, 
+            json: {error: "Não logado"} 
+        };
+    }
+
 	const coord_x = parseInt(body.x);
 	const coord_y = parseInt(body.y);
 
 	const color = parseInt(body.c);
 	
-	const username = session.username;
+	const username = userinfo.username;
 
 	const resp = await PixelChanges.setPixel(username,coord_x,coord_y,color);
 	
@@ -281,7 +288,7 @@ router.get("/savedindex", genericRouteHandler("GET","/savedindex",true,handleGet
  *               format: binary
  */
 router.get("/picture", async (req,res) => {
-	
+	try {
 	// Envia a imagem e o offset do último save dela,
 	// assim o próximo /changes irá continuar a partir
 	// do ponto correto, mesmo que entre receber essa imagem
@@ -304,31 +311,11 @@ router.get("/picture", async (req,res) => {
 				"Expires": "0"
 			}
 			// colocar body?
-		}, async (err) => {
-            if(!err) return;
-
-            console.error(err);
-
-            let imgSharpObj = await sharp({
-                create: {
-                    width: IMAGE_WIDTH,
-                    height: IMAGE_HEIGHT,
-                    channels: 3,
-                    background: {r: 255, g: 255, b: 255}
-                }
-            });
-    
-            let imgPixelsBuff = await imgSharpObj.png().toBuffer();
-    
-            res.status(200)
-                .setHeader("X-Changes-Offset", resp.i)
-                .setHeader("X-Changes-Identifier", resp.identifier)
-                .setHeader("Cache-Control", "no-store, must-revalidate")
-                .setHeader("Pragma", "no-cache")
-                .setHeader("Expires", "0")
-                .setHeader("Content-Type", "image/png")
-                .send(imgPixelsBuff);
-        });
+		});
+	} catch(e) {
+		console.error(e);
+		return res.status(500).json({message: "Erro ao acessar imagem:"+e});
+	}
 });
 
 /**
@@ -352,8 +339,12 @@ router.get("/picture", async (req,res) => {
  *                     example: "ffffff"
  */
 router.get("/pallete", (req,res) => {
-	//return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
-	return res.status(200).json(palleteJson);
+	try {
+		return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
+	} catch(e) {
+		console.error(e);
+		return res.status(500).json({message: "Erro ao acessar paleta de cores:"+e});
+	}
 });
 
 
