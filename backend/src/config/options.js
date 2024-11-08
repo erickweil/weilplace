@@ -23,6 +23,7 @@ export const REDIS_ENABLED = envOrDefault("REDIS_ENABLED","false") === "true";
 export const WEBSOCKET_ENABLED = envOrDefault("WEBSOCKET_ENABLED","true") === "true";
 	
 export const PATH_PALLETE = envOrDefault("PATH_PALLETE","./public/pallete.json");
+export const REQUIRE_GOOGLE_LOGIN = envOrDefault("REQUIRE_GOOGLE_LOGIN","false") === "true";
 export const OAUTH2_CLIENT_ID = envOrDefault("OAUTH2_CLIENT_ID","");
 export const PALLETE = [];
 

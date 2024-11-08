@@ -1,9 +1,11 @@
 import Head from 'next/head'
+import styles from '@/styles/Pixels.module.css'
 import NonSSRWrapper from '@/components/no-ssr-wrapper'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import PixelsView from '@/components/PixelsView/PixelsView'
 import { getApiURL } from '@/config/api';
 import DatePicker from '@/components/DatePicker';
+import Link from 'next/link'
 
 const pixelsViewOptions = {
   DEBUG: false,
@@ -96,6 +98,12 @@ export default function Home() {
                 historyPictureUrl={selectedPicture}
             />
         }
+
+        
+      <div className={`${styles.topLinkInfo}`}>
+        <Link href="/">Início</Link>      
+        <Link href={selectedPicture ? getApiURL("/history/"+selectedPicture) : "#"} download>Baixar</Link>
+      </div>
 
         {
             historyPictureUrls.length === 0 ? <p>Carregando...</p> :

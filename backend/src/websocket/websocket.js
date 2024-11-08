@@ -101,7 +101,7 @@ const initWebSocketServer = (server, sessionParser) => {
 	const interval = setInterval(() => {
 		wss.clients.forEach((ws) => {
 			if (ws.isAlive === false) {
-				console.log("Fechando conexão quebrada de "+ws.session.username);
+				console.log("Fechando conexão quebrada de "+ws.session?.username);
 				return ws.terminate(); // ws.readyState !== WebSocket.OPEN
 			}
 

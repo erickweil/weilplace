@@ -26,7 +26,7 @@ export const arraysEqual = (a, b) => {
 
 const PixelsView = (props) => {
 
-	const { pallete, notifyCenterPixel, onPlacePixel, historyPictureUrl, options:_options, ...rest } = props
+	const { pallete, notifyCenterPixel, onChangeColor, onPlacePixel, historyPictureUrl, options:_options, ...rest } = props
 
     const defaultOptions = {
 		spanButton: "any", // left | middle | right | any
@@ -222,6 +222,7 @@ const PixelsView = (props) => {
 	const onKeyDown = (e,estado) => {
 		let offx = 0;
 		let offy = 0;
+		let offCor = 0;
 		switch (e.key) {
 			case "ArrowLeft":
 				offx--;
@@ -234,6 +235,15 @@ const PixelsView = (props) => {
 				break;
 			case "ArrowDown":
 				offy++;
+				break;
+			case "Tab":
+				e.preventDefault();
+				if(e.shiftKey) {
+					onChangeColor(-2);
+				} else {
+					onChangeColor(-1);
+				}
+				break;
 		}
 
 		if(offx != 0 || offy != 0)	{

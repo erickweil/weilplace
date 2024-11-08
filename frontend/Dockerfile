@@ -1,10 +1,6 @@
 # https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 # https://www.youtube.com/watch?v=dtLpWR98HfE
 ARG NODE_ENV=production
-ARG SERVERSIDE_API_URL=http://127.0.0.1:3001
-ARG NEXT_PUBLIC_API_URL=http://localhost:3000/api
-ARG NEXT_PUBLIC_WEBSOCKET_ENABLED=true
-ARG NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:3000/api
 
 # ===============================================================
 # Primeiro estágio: Instalação das dependências
@@ -32,14 +28,6 @@ WORKDIR /app
 
 ARG NODE_ENV
 ENV NODE_ENV=$NODE_ENV
-ARG SERVERSIDE_API_URL
-ENV SERVERSIDE_API_URL=$SERVERSIDE_API_URL
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_WEBSOCKET_ENABLED
-ENV NEXT_PUBLIC_WEBSOCKET_ENABLED=$NEXT_PUBLIC_WEBSOCKET_ENABLED
-ARG NEXT_PUBLIC_WEBSOCKET_URL
-ENV NEXT_PUBLIC_WEBSOCKET_URL=$NEXT_PUBLIC_WEBSOCKET_URL
 
 # Copia as dependências no outro estágio
 COPY --from=estagio_deps /app/node_modules ./node_modules
@@ -55,8 +43,6 @@ WORKDIR /app
 
 ARG NODE_ENV
 ENV NODE_ENV=$NODE_ENV
-ARG SERVERSIDE_API_URL
-ENV SERVERSIDE_API_URL=$SERVERSIDE_API_URL
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
