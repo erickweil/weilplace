@@ -25,6 +25,29 @@ let options = {
 };
 
 let redisClient = false;
+
+/*
+-- O que este comando faz é então de forma atômica:
+-- 1. pega as mudanças desde o trimindex
+-- 2. seta as mudanças com o intervalo obtido
+-- 3. registra o novo identificador
+-- 4. registra o novo índice do último save
+*/
+const resetChangesScript = "\n"+
+"local key_changes = KEYS[1];\n"+
+"local key_identifier = KEYS[2];\n"+
+"local key_savedindex = KEYS[3];\n"+
+"\n"+
+"local trimindex = ARGV[1];\n"+
+"local newidentifier = ARGV[2];\n"+
+"local newsavedindex = ARGV[3];\n"+
+"\n"+
+"local changes = redis.call('GETRANGE',key_changes,trimindex,-1);\n"+
+"redis.call('SET',key_changes,changes);\n"+
+"redis.call('SET',key_identifier,newidentifier);\n"+
+"redis.call('SET',key_savedindex,newsavedindex);\n"+
+"\n"+
+"return 'OK' ";
 /** Gerencia as modificações nos pixels
  *  Utiliza uma string de mudanças que cresce conforme novas modificações são feitas
  *  A string inteira é codificada em base64, mas a cada append são colocados exatamente
@@ -51,7 +74,8 @@ class PixelChanges {
 			// https://github.com/redis/node-redis/blob/master/examples/lua-multi-incr.js
 			resetchanges: defineScript({
 				NUMBER_OF_KEYS: 3,
-				SCRIPT: readFileSync("./lua/resetChanges.lua","utf8"),
+				//SCRIPT: readFileSync("./lua/resetChanges.lua","utf8"),
+				SCRIPT: resetChangesScript,
 				transformArguments(key1,key2,key3,arg1,arg2,arg3) {
 					return [key1,key2,key3,""+arg1,""+arg2,""+arg3];
 				},
