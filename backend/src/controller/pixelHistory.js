@@ -1,6 +1,6 @@
 import path from "path";
 import { copyFile, mkdir, readdir } from "fs/promises";
-import { PATH_PICTURE } from "../config/options.js";
+import { DISABLE_FILESYSTEM, PATH_PICTURE } from "../config/options.js";
 
 const pixelsPictureDirectory = path.dirname(PATH_PICTURE);
 const pixelsPictureFilename = path.basename(PATH_PICTURE);
@@ -23,6 +23,10 @@ const getHH_MM_SS = (date, sep) => {
 class PixelHistory {
     // Chamado pelo PixelSaver
     static async saveHistoryPicture() {
+        if(DISABLE_FILESYSTEM) {
+            return null;
+        }
+
         // https://stackoverflow.com/questions/4402934/javascript-time-and-date-getting-the-current-minute-hour-day-week-month-y
         const now = new Date();
 
@@ -36,6 +40,10 @@ class PixelHistory {
     }
 
     static async listHistoryPictureByDay(filterDay) {
+        if(DISABLE_FILESYSTEM) {
+            return [];
+        }
+
         const todayDir = path.join(pixelsPictureDirectory, filterDay);
         const files = await readdir(todayDir);
         
@@ -46,6 +54,10 @@ class PixelHistory {
     }
 
     static async listHistoryPictures(filterDay) {
+        if(DISABLE_FILESYSTEM) {
+            return [];
+        }
+        
         if(!filterDay) {
             const files = await readdir(pixelsPictureDirectory);
 

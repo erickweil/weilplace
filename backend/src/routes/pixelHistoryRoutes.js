@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 
-import { PATH_PICTURE } from "../config/options.js";
+import { DISABLE_FILESYSTEM, PATH_PICTURE } from "../config/options.js";
 import PixelHistory from "../controller/pixelHistory.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
 
@@ -76,6 +76,10 @@ router.get("/history/:date/:filename", async (req,res) => {
             return res.status(400).json({message: "Data inválida"});
         if(!req.params.filename.match(/^\d{2}\.\d{2}\.\d{2}\..*$/))
             return res.status(400).json({message: "Nome de arquivo inválido"});
+
+        if(DISABLE_FILESYSTEM) {
+            return res.status(404).json({message: "Sistema de arquivos desabilitado"});
+        }
 
         const imageFilepath = path.join(path.dirname(PATH_PICTURE),req.params.date,req.params.filename);
 

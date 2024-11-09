@@ -1,15 +1,14 @@
-// Enquanto não tem banco, este arquivo cria um MOCK do que seria uma imagem
-import { readFileSync } from "fs";
-
 import { convertChangeToBase64 } from "../config/changesProtocol.js";
 import RedisMock from "./redisMock.js";
-import { defineScript } from "redis";
-import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE } from "../config/options.js";
+import { defineScript, createClient, commandOptions } from "redis";
+import { DISABLE_FILESYSTEM, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE } from "../config/options.js";
+import { handleApplyChanges } from "../routes/privateRoutes.js";
 
 let KEY_IDENTIFIER = "changesid";
 let KEY_SAVEDINDEX = "savedindex";
 let KEY_CHANGES = "changes";
 let KEY_USERTIMES = "usertimes"; // armazena o timestamp da última vez que colocou o pixel
+let KEY_PICTURE = "picture"; // a imagem salva (se não usar filesystem)
 
 let options = {
 	redis_prefix: "REDIS_PREFIX" in process.env ? process.env.REDIS_PREFIX : "",
@@ -22,10 +21,11 @@ let options = {
 		o índice 0, para evitar DoS seria bom não deixar esse valor
 		muito alto*/
 	max_changes_response: "MAX_CHANGES_RESPONSE" in process.env ? parseInt(process.env.MAX_CHANGES_RESPONSE) : 8192,
+	pixel_saver_call: "PIXEL_SAVER_CALL" in process.env ? process.env.PIXEL_SAVER_CALL === "true" : false
 };
 
+/** @type {ReturnType<createClient>} */
 let redisClient = false;
-
 /*
 -- O que este comando faz é então de forma atômica:
 -- 1. pega as mudanças desde o trimindex
@@ -68,26 +68,14 @@ const resetChangesScript = "\n"+
  */
 class PixelChanges {
 
-	static getLuaScriptsConfig() {
-		return {
-			// https://www.npmjs.com/package/redis?activeTab=readme#Programmability
-			// https://github.com/redis/node-redis/blob/master/examples/lua-multi-incr.js
-			resetchanges: defineScript({
-				NUMBER_OF_KEYS: 3,
-				//SCRIPT: readFileSync("./lua/resetChanges.lua","utf8"),
-				SCRIPT: resetChangesScript,
-				transformArguments(key1,key2,key3,arg1,arg2,arg3) {
-					return [key1,key2,key3,""+arg1,""+arg2,""+arg3];
-				},
-				transformReply(reply) {
-					return reply;
-				}
-			})
-		};
-	}
 	/** Especifique a conexão do redis ou então falso para guardar as mudanças na memória
 	*/
+	static calledInit = false;
 	static async init(_redisClient, _options) {
+		if(PixelChanges.calledInit) {
+			throw new Error("PixelChanges já foi inicializado, deve chamá-lo apenas uma vez.");
+		}
+		PixelChanges.calledInit = true;
 
 		if(_options) {
 			options = {...options, ..._options};
@@ -108,6 +96,7 @@ class PixelChanges {
 			KEY_SAVEDINDEX = options.redis_prefix+KEY_SAVEDINDEX;
 			KEY_CHANGES = options.redis_prefix+KEY_CHANGES;
 			KEY_USERTIMES = options.redis_prefix+KEY_USERTIMES;
+			KEY_PICTURE = options.redis_prefix+KEY_PICTURE;
 		}
 
 		const [identifier, savedIndex] =  await redisClient.MGET([KEY_IDENTIFIER,KEY_SAVEDINDEX]);
@@ -123,8 +112,25 @@ class PixelChanges {
 		}
 	}
 
-	static async setPixel(username,x,y,c) {
+	static getLuaScriptsConfig() {
+		return {
+			// https://www.npmjs.com/package/redis?activeTab=readme#Programmability
+			// https://github.com/redis/node-redis/blob/master/examples/lua-multi-incr.js
+			resetchanges: defineScript({
+				NUMBER_OF_KEYS: 3,
+				//SCRIPT: readFileSync("./lua/resetChanges.lua","utf8"),
+				SCRIPT: resetChangesScript,
+				transformArguments(key1,key2,key3,arg1,arg2,arg3) {
+					return [key1,key2,key3,""+arg1,""+arg2,""+arg3];
+				},
+				transformReply(reply) {
+					return reply;
+				}
+			})
+		};
+	}
 
+	static async setPixel(username,x,y,c) {
 		// Impedir colocar pixels fora do canvas
 		if( x < 0 || x >= IMAGE_WIDTH ||
 			y < 0 || y >= IMAGE_HEIGHT ||
@@ -170,6 +176,13 @@ class PixelChanges {
 		};
 
 		await redisClient.APPEND(KEY_CHANGES, changes);
+
+		// 1 a cada 100 vezes chama o pixel saver
+		if(options.pixel_saver_call && Math.random() > 0.99) {
+			setTimeout(async () => {
+				console.log(await handleApplyChanges());
+			},0);
+		}
 
 		return {
 			message: "OK",
@@ -303,6 +316,19 @@ class PixelChanges {
 		};
 	}
 
+	// -----------------------------------
+	// usado quando desativa o filesystem
+	// -----------------------------------
+
+	// Obtêm a imagem salva no redis
+	static async getPicture() {
+		return await redisClient.GET(commandOptions({ returnBuffers: true }), KEY_PICTURE);
+	}
+
+	// Salva a imagem no redis
+	static async savePicture(picture) {
+		return await redisClient.SET(KEY_PICTURE,picture);
+	}
 }
 
 export default PixelChanges;

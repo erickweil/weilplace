@@ -26,7 +26,9 @@ class RedisMock {
 		this.mutex = {};
 	}
 
-	async GET(key) {
+	async GET(key, _key) {
+		if(typeof key !== "string") key = _key; // quando usar command options
+
 		return await using(this.lock,this.mutex, async () => {
 			let v = this.keys[key];
 			return v === undefined ? null : v;

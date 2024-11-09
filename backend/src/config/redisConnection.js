@@ -3,6 +3,7 @@ import Redis from "redis";
 
 import { REDIS_URL } from "./options.js";
 
+/** @type {ReturnType<Redis.createClient>} */
 let redisClient = false;
 
 let connectionTimeout = false;

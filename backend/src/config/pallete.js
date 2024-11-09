@@ -1,4 +1,4 @@
-{
+export const palleteJson = {
     "pallete": [
         "6d001a",
         "be0039",
@@ -33,4 +33,4 @@
         "d4d7d9",
         "ffffff"
     ]
-}
+};

@@ -3,10 +3,10 @@ import cron from "node-cron";
 
 import sharp from "sharp";
 
-import { IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PICTURE } from "../config/options.js";
+import { DISABLE_FILESYSTEM, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE, PATH_PICTURE } from "../config/options.js";
 import { handlePixelChanges } from "../config/changesProtocol.js";
-import { handleGetChanges, handleGetSavedIndex } from "../routes/pixelsRoutes.js";
-import { handleResetChanges, handleSetSavedIndex } from "../routes/privateRoutes.js";
+import { handleGetChanges, handleGetPicureFromRedis, handleGetSavedIndex } from "../routes/pixelsRoutes.js";
+import { handleResetChanges, handleSavePicture, handleSetSavedIndex } from "../routes/privateRoutes.js";
 import PixelHistory from "../controller/pixelHistory.js";
 // redis_prefix: "REDIS_PREFIX" in process.env ? process.env.REDIS_PREFIX : "",
 
@@ -28,7 +28,34 @@ let last_i = -1;
 let last_identifier = false;
 
 class PixelSaver {
+	static async loadImage() {
+		let imgSharpObj;
+		if(DISABLE_FILESYSTEM) {
+			let picturePngBuff = await PixelSaver.doPictureRedisGet();
+			imgSharpObj = await sharp(picturePngBuff);
+		} else {
+			imgSharpObj = await sharp(PATH_PICTURE);
+		}
+
+		let imgMetadata = await imgSharpObj.metadata();
+
+		imgPixelsBuff = await imgSharpObj.raw().toBuffer();
+
+		console.log("Metadata:", imgMetadata);
+		if(imgMetadata.width != IMAGE_WIDTH || imgMetadata.height != IMAGE_HEIGHT) {
+			throw new Error(`Imagem deveria ser ${IMAGE_WIDTH}x${IMAGE_HEIGHT} porém é ${imgMetadata.width}x${imgMetadata.height} abortando...`);
+		}
+		
+
+		return imgSharpObj;
+	}
+
+	static calledInit = false;
 	static async init(_options) {
+		if(PixelSaver.calledInit) {
+			throw new Error("PixelSaver já foi inicializado, deve ser chamado apenas uma vez");
+		}
+		PixelSaver.calledInit = true;
 
 		if(_options) {
 			options = {...options, ..._options};
@@ -37,15 +64,7 @@ class PixelSaver {
 		let imgSharpObj = false;
 		
 		try {
-			imgSharpObj = await sharp(PATH_PICTURE);
-			let imgMetadata = await imgSharpObj.metadata();
-
-			imgPixelsBuff = await imgSharpObj.raw().toBuffer();
-
-			console.log("Metadata:", imgMetadata);
-			if(imgMetadata.width != IMAGE_WIDTH || imgMetadata.height != IMAGE_HEIGHT) {
-				throw new Error(`Imagem deveria ser ${IMAGE_WIDTH}x${IMAGE_HEIGHT} porém é ${imgMetadata.width}x${imgMetadata.height} abortando...`);
-			}
+			imgSharpObj = await PixelSaver.loadImage();
 		} catch (e) {
 			console.log(e);
 			console.log("Criando nova imagem, pois não havia nenhuma");
@@ -70,21 +89,23 @@ class PixelSaver {
 		if(options.delay_cron_save > 0)
 		{
 			// https://www.npmjs.com/package/node-cron#cron-syntax
-			return cron.schedule("*/"+options.delay_cron_save+" * * * * *", async () => {
-				if(!imgPixelsBuff) return;
-
-				let repeat = true;
-				let before_i = last_i;
-				while(repeat === true) {
-					repeat = await PixelSaver.queryChanges();
-				}
-
-				// Só salva a imagem se houver mudanças
-				if(before_i != -1 && before_i != last_i) {
-					await PixelSaver.automaticSave();
-				}
-			});
+			return cron.schedule("*/"+options.delay_cron_save+" * * * * *", PixelSaver.cronTask);
 		} else return false;
+	}
+
+	static async cronTask() {
+		if(!imgPixelsBuff) return;
+
+		let repeat = true;
+		let before_i = last_i;
+		while(repeat === true) {
+			repeat = await PixelSaver.queryChanges();
+		}
+
+		// Só salva a imagem se houver mudanças
+		if(before_i != -1 && before_i != last_i) {
+			await PixelSaver.automaticSave();
+		}
 	}
 
 	static setSinglePixel(x,y,rgb) {
@@ -109,7 +130,7 @@ class PixelSaver {
     }*/
 
 	static async savePicture(identifier, i) {
-		await sharp(
+		let imgSharpObj = sharp(
 			imgPixelsBuff, {
 				raw: {
 					width: IMAGE_WIDTH,
@@ -118,7 +139,7 @@ class PixelSaver {
 				}
 			}
 		)
-		.png()
+		.png();
 		/*.withMetadata({
 			exif: {
 				IFD0: {
@@ -129,11 +150,18 @@ class PixelSaver {
 				}
 			}
 		})*/
-		.toFile(PATH_PICTURE);
+		if(DISABLE_FILESYSTEM) {
+			// Obtêm o Buffer da imagem
+			imgSharpObj = await imgSharpObj.toBuffer();
+			// envia o Buffer para o redis
+			await PixelSaver.doSavePicturePost(imgSharpObj);
+		} else {
+			imgSharpObj = await imgSharpObj.toFile(PATH_PICTURE);
+		}
 
 		if(options.save_history)
 		{
-			PixelHistory.saveHistoryPicture();
+			await PixelHistory.saveHistoryPicture();
 		}
 	}
 
@@ -169,6 +197,18 @@ class PixelSaver {
 		const res = await handleResetChanges({i:""+trim_i});
 		if(res.status == 200) return res.json;
 		else throw new Error("Não foi possível completar a requisição:"+res);
+	}
+
+	static async doSavePicturePost(picture) {
+		const res = await handleSavePicture({picture: picture});
+		if(res.status == 200) return res.json;
+		else throw new Error("Não foi possível completar a requisição:"+res);
+	}
+
+	static async doPictureRedisGet() {
+		const res = await handleGetPicureFromRedis();
+		if(res.status == 200) return res.body;
+		else throw new Error("Não foi possível completar a requisição:"+JSON.stringify(res,null,2));
 	}
 
 	// retorna verdadeiro se precisa repetir logo em seguida

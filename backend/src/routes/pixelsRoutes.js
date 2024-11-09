@@ -1,9 +1,10 @@
 import express from "express";
 import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
-import { PATH_PALLETE, PATH_PICTURE } from "../config/options.js";
+import { DISABLE_FILESYSTEM, PATH_PICTURE } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
 import { SessionManager } from "../middleware/sessionManager.js";
+import { palleteJson } from "../config/pallete.js";
 
 const router = express.Router();
 
@@ -263,6 +264,21 @@ router.post("/pixel", genericRouteHandler("POST","/pixel",true,handlePostPixel))
 router.get("/changes", genericRouteHandler("GET","/changes",true,handleGetChanges));
 router.get("/savedindex", genericRouteHandler("GET","/savedindex",true,handleGetSavedIndex));
 
+
+export const handleGetPicureFromRedis = async () => {
+	let picture = await PixelChanges.getPicture();
+
+	if(!picture) return {
+		status: 400,
+		body: {error: "Imagem não encontrada"}
+	};
+
+	return {
+		status: 200,
+		body: picture
+	};
+};
+
 /**
  * @swagger
  * /picture:
@@ -289,29 +305,39 @@ router.get("/savedindex", genericRouteHandler("GET","/savedindex",true,handleGet
  */
 router.get("/picture", async (req,res) => {
 	try {
-	// Envia a imagem e o offset do último save dela,
-	// assim o próximo /changes irá continuar a partir
-	// do ponto correto, mesmo que entre receber essa imagem
-	// e iniciar o /changes houver modificações, ele irá recebê-las.
-	const resp = await PixelChanges.getSavedIndex();
+		// Envia a imagem e o offset do último save dela,
+		// assim o próximo /changes irá continuar a partir
+		// do ponto correto, mesmo que entre receber essa imagem
+		// e iniciar o /changes houver modificações, ele irá recebê-las.
+		const resp = await PixelChanges.getSavedIndex();
 
-	// 1. Se entre o getChanges acima e a leitura da imagem, for salva uma nova imagem
-	// não causa problemas, pois o cliente irá re-aplicar as mudanças, um re-trabalho
-	// inútil porém é garantido que nenhum pixel será perdido
-	// 2. Se entre o /picture e o próximo /changes do cliente as modificações forem resetadas,
-	// não causa problemas pois o cliente irá realizar um novo /picture devido ao novo identifier (por isso o X-Changes-Identifier)
-	return res.status(200)
-		.sendFile(PATH_PICTURE,{
-			root: path.resolve(),
-			headers: {
-				"X-Changes-Offset": resp.i, // Offset do último save da imagem
-				"X-Changes-Identifier": resp.identifier, // ID da string de modificações (Para evitar erros ao resetar as mudanças)
-				"Cache-Control": "no-store, must-revalidate",
-				"Pragma": "no-cache",
-				"Expires": "0"
-			}
-			// colocar body?
-		});
+		const headers = {
+			"X-Changes-Offset": resp.i, // Offset do último save da imagem
+			"X-Changes-Identifier": resp.identifier, // ID da string de modificações (Para evitar erros ao resetar as mudanças)
+			"Cache-Control": "no-store, must-revalidate",
+			"Pragma": "no-cache",
+			"Expires": "0"
+		};
+
+		if(DISABLE_FILESYSTEM) {
+			let { body } = await handleGetPicureFromRedis();
+			return res
+			.setHeaders(new Map(Object.entries(headers)))
+			.contentType("image/png")
+			.status(200).send(body);
+		} else {
+			// 1. Se entre o getChanges acima e a leitura da imagem, for salva uma nova imagem
+			// não causa problemas, pois o cliente irá re-aplicar as mudanças, um re-trabalho
+			// inútil porém é garantido que nenhum pixel será perdido
+			// 2. Se entre o /picture e o próximo /changes do cliente as modificações forem resetadas,
+			// não causa problemas pois o cliente irá realizar um novo /picture devido ao novo identifier (por isso o X-Changes-Identifier)
+			return res.status(200)
+			.sendFile(PATH_PICTURE,{
+				root: path.resolve(),
+				headers: headers
+				// colocar body?
+			});
+		}
 	} catch(e) {
 		console.error(e);
 		return res.status(500).json({message: "Erro ao acessar imagem:"+e});
@@ -339,12 +365,7 @@ router.get("/picture", async (req,res) => {
  *                     example: "ffffff"
  */
 router.get("/pallete", (req,res) => {
-	try {
-		return res.status(200).sendFile(PATH_PALLETE,{root: path.resolve() });
-	} catch(e) {
-		console.error(e);
-		return res.status(500).json({message: "Erro ao acessar paleta de cores:"+e});
-	}
+	return res.status(200).json(palleteJson);
 });
 
 
