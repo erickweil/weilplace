@@ -4,13 +4,13 @@ import session from "express-session";
 import RedisStore from "connect-redis";
 import http from "http";
 
-import { SESSION_MAX_AGE, SESSION_SECRET, REDIS_ENABLED, WEBSOCKET_ENABLED } from "./config/options.js";
+import { SESSION_MAX_AGE, SESSION_SECRET, REDIS_ENABLED, WEBSOCKET_ENABLED, PIXEL_SAVER_CALL } from "./config/options.js";
 
 import routes from "./routes/index.js";
 import { SessionManager } from "./middleware/sessionManager.js";
 import PixelChanges from "./controller/pixelChanges.js";
 import { connectToRedis } from "./config/redisConnection.js";
-import PixelSaver from "./service/pixelSaver.js";
+import { PixelSaver } from "./service/pixelSaver.js";
 import initWebSocketServer from "./websocket/websocket.js";
 
 let redisClient = REDIS_ENABLED ?  await connectToRedis(PixelChanges.getLuaScriptsConfig()) : false;
@@ -19,8 +19,11 @@ await PixelChanges.init(redisClient);
 
 
 if(!REDIS_ENABLED) {
-	console.log("Iniciando saver na mesma instância já que o redis está desativado...");
-	const cronTask = await PixelSaver.init();
+	if(!PIXEL_SAVER_CALL) {
+		console.log("Iniciando saver na mesma instância já que o redis está desativado...");
+		const saver = await PixelSaver.init();
+		const cronJob = saver.scheduleCron();
+	}
 }
 
 const app = express();
@@ -78,7 +81,7 @@ let sessionOptions = {
 	resave: true,
 	saveUninitialized: true,
 	cookie: {
-		sameSite: "strict",
+		sameSite: "none",
 		httpOnly: true,
         secure: true,
 		maxAge: SESSION_MAX_AGE*1000, // em milissegundos
@@ -103,7 +106,8 @@ if(REDIS_ENABLED) {
 const sessionParser = session(sessionOptions);
 app.use(sessionParser);
 
-app.use(SessionManager.initSession);
+// Não. só vai ter sessão se estiver logado
+// app.use(SessionManager.initSession);
 
 // Websockets
 if(WEBSOCKET_ENABLED) {

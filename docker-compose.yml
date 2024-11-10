@@ -10,10 +10,12 @@ services:
     environment:
       PORT: "3001"
       PATH_PICTURE: "./public/pixels/picture.png"
-      LOG_ROUTES: "false"
+      LOG_ROUTES: "true"
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
-      PLACE_DELAY: 0
+      PLACE_DELAY: 1000
+      DISABLE_FILESYSTEM: "false"
+      PIXEL_SAVER_CALL: "false"
     networks:
       weilplace:
         ipv4_address: 10.5.0.2
@@ -31,6 +33,8 @@ services:
       PATH_PICTURE: "./public/pixels/picture.png"
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
+      DISABLE_FILESYSTEM: "false"
+      PIXEL_SAVER_CALL: "false"
     networks:
       weilplace:
         ipv4_address: 10.5.0.3

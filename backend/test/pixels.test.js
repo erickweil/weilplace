@@ -39,7 +39,7 @@ describe("Testando Rota Pixels",() => {
 
 	test("Setando pixel", async () => {
 		await PixelChanges.init(redisMock, {
-			place_delay: 100,
+			place_delay: 100000,
 		});
 
 		expect(await handlePostPixel({x:"0",y:"0",c:"0"},session)).toMatchObject({

@@ -18,6 +18,10 @@ export const haiku = () =>{
 
 export class SessionManager {
 
+    /**
+     * @deprecated 
+     * Descontinuado pois causa inúmeros nomes de usuário no redis quando o cookie não está configurado direito
+    */
 	static initSession(req,res,next) {
 
 		if(!req.session.username) {	
@@ -92,11 +96,7 @@ export class SessionManager {
 
             return userinfo;
         } else {
-            if(!hasSession) {
-                return undefined;
-            }
-
-            return userinfo;
+            return { username: "anonimo" };
         }
     }
 }

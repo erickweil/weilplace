@@ -50,7 +50,7 @@ const onConnection = (wss,ws) => {
 
 		if(LOG_ROUTES) {
 			const timestamp = new Date().toISOString();
-			console.log(timestamp+" "+session?.username+" websocket: "+method+" "+route+" ",json);
+			console.log(timestamp+" "+ws.username+" websocket: "+method+" "+route+" ",json);
 		}
 
 		const resp = await handler(json,session);
@@ -75,23 +75,24 @@ const initWebSocketServer = (server, sessionParser) => {
 		ws.isAlive = true;
 
 		ws.on("error",(error) => {
-			console.log("Erro em:"+ws.session?.username,error);
+			console.log("Erro em:"+ws.username,error);
 		});
 		ws.on("pong", () => {
 			//console.log("Recebeu pong de "+ws.session.username);
 			ws.isAlive = true;
 		});
 		ws.on("close", () => {
-			console.log(ws.session?.username+" desconectou.");
+			console.log(ws.username+" desconectou.");
 		});
 
 		// https://stackoverflow.com/questions/12182651/expressjs-websocket-session-sharing
         sessionParser(req, {}, function() {
-			SessionManager.initSession(req, null, () => {});
-
+			// Não
+			// SessionManager.initSession(req, null, () => {});
+			
 			ws.session = req.session;
-            console.log(ws.session?.username+" conectado.");
-
+			ws.username = req.session?.username || haiku();
+            console.log(ws.username+" conectado.");
 
 			onConnection(wss,ws);
         });
@@ -101,7 +102,7 @@ const initWebSocketServer = (server, sessionParser) => {
 	const interval = setInterval(() => {
 		wss.clients.forEach((ws) => {
 			if (ws.isAlive === false) {
-				console.log("Fechando conexão quebrada de "+ws.session?.username);
+				console.log("Fechando conexão quebrada de "+ws.username);
 				return ws.terminate(); // ws.readyState !== WebSocket.OPEN
 			}
 

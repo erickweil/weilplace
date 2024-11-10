@@ -27,3 +27,4 @@ export const OAUTH2_CLIENT_ID = envOrDefault("OAUTH2_CLIENT_ID","");
 export const PALLETE = palleteJson.pallete.map(c => parseInt(c,16));
 
 export const DISABLE_FILESYSTEM = envOrDefault("DISABLE_FILESYSTEM","false") === "true";
+export const PIXEL_SAVER_CALL = envOrDefault("PIXEL_SAVER_CALL","false") === "true";

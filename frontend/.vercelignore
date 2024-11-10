@@ -1,0 +1,4 @@
+.next/
+public/*
+*.secret*
+node_modules/

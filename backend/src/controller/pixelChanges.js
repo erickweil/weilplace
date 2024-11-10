@@ -2,7 +2,6 @@ import { convertChangeToBase64 } from "../config/changesProtocol.js";
 import RedisMock from "./redisMock.js";
 import { defineScript, createClient, commandOptions } from "redis";
 import { DISABLE_FILESYSTEM, IMAGE_HEIGHT, IMAGE_WIDTH, PALLETE } from "../config/options.js";
-import { handleApplyChanges } from "../routes/privateRoutes.js";
 
 let KEY_IDENTIFIER = "changesid";
 let KEY_SAVEDINDEX = "savedindex";
@@ -12,6 +11,7 @@ let KEY_PICTURE = "picture"; // a imagem salva (se não usar filesystem)
 
 let options = {
 	redis_prefix: "REDIS_PREFIX" in process.env ? process.env.REDIS_PREFIX : "",
+	// em milissegundos
 	place_delay: "PLACE_DELAY" in process.env ? parseInt(process.env.PLACE_DELAY) : 0,
 	/*  O MAX_CHANGES_RESPONSE indica o tamanho de resposta máximo
 		que será dado ao cliente ao solicitar as modificações, mesmo que haja mais.
@@ -20,8 +20,7 @@ let options = {
 		Nada impede o cliente de solicitar a string inteira desde
 		o índice 0, para evitar DoS seria bom não deixar esse valor
 		muito alto*/
-	max_changes_response: "MAX_CHANGES_RESPONSE" in process.env ? parseInt(process.env.MAX_CHANGES_RESPONSE) : 8192,
-	pixel_saver_call: "PIXEL_SAVER_CALL" in process.env ? process.env.PIXEL_SAVER_CALL === "true" : false
+	max_changes_response: "MAX_CHANGES_RESPONSE" in process.env ? parseInt(process.env.MAX_CHANGES_RESPONSE) : 8192
 };
 
 /** @type {ReturnType<createClient>} */
@@ -72,9 +71,6 @@ class PixelChanges {
 	*/
 	static calledInit = false;
 	static async init(_redisClient, _options) {
-		if(PixelChanges.calledInit) {
-			throw new Error("PixelChanges já foi inicializado, deve chamá-lo apenas uma vez.");
-		}
 		PixelChanges.calledInit = true;
 
 		if(_options) {
@@ -143,6 +139,7 @@ class PixelChanges {
 		// Possível problema: Como primeiro pega o tempo e depois seta o pixel,
 		// se mandar requisições simultâneas pode acontecer de setar mais de um pixel devido
 		// à condição de corrida de verificarem ao mesmo tempo?
+		// A fazer: converter essa lógica para lua script, para garantir que seja atômico dentro do redis
 		if(options.place_delay > 0)
 		{
 			let timeLastPlaced = await redisClient.HGET(KEY_USERTIMES,username);
@@ -177,16 +174,9 @@ class PixelChanges {
 
 		await redisClient.APPEND(KEY_CHANGES, changes);
 
-		// 1 a cada 100 vezes chama o pixel saver
-		if(options.pixel_saver_call && Math.random() > 0.99) {
-			setTimeout(async () => {
-				console.log(await handleApplyChanges());
-			},0);
-		}
-
 		return {
 			message: "OK",
-			delay: options.place_delay
+			delay: options.place_delay > 0 ? Math.ceil(options.place_delay/1000) : 0
 		};
 	}
 
@@ -204,7 +194,7 @@ class PixelChanges {
 		return {
 			message: "OK",
 			identifier: ret[0],
-			i: ret[1]
+			i: parseInt(ret[1])
 		};
 	}
 

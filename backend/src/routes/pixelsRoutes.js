@@ -1,10 +1,11 @@
 import express from "express";
 import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
-import { DISABLE_FILESYSTEM, PATH_PICTURE } from "../config/options.js";
+import { DISABLE_FILESYSTEM, PATH_PICTURE, PIXEL_SAVER_CALL, REDIS_ENABLED } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
 import { SessionManager } from "../middleware/sessionManager.js";
 import { palleteJson } from "../config/pallete.js";
+import { PixelSaver } from "../service/pixelSaver.js";
 
 const router = express.Router();
 
@@ -320,11 +321,51 @@ router.get("/picture", async (req,res) => {
 		};
 
 		if(DISABLE_FILESYSTEM) {
-			let { body } = await handleGetPicureFromRedis();
+			let response = await handleGetPicureFromRedis();
+			let pngBuffer;
+			if(response.status === 200) {
+				pngBuffer = response.body;
+			}
+
+			// Isso causa aplicar todas as mudanças que ocorreram desde o último save, e fazer um novo save se necessário
+			// Tornando desnescessário o uso de cronjob para salvar a imagem, porém confiando que o cliente irá atualizar a página de vez em quando
+			if(PIXEL_SAVER_CALL) {
+				const { status, json } = await handleGetChanges({i:""+resp.i});
+				if(status !== 200) throw new Error("Não foi possível obter mudanças:"+json);
+
+				// Só vai aplicar a imagem se realmente houve mudanças
+				if(!pngBuffer || json.identifier !== resp.identifier || json.i !== resp.i) {
+					const saver = await PixelSaver.init(pngBuffer, resp.i, resp.identifier);
+
+					// Força execução de todas as mudanças
+					const result = await saver.cronTask(json);
+					
+					// Se houve mudanças, a imagem foi salva, retornando o buffer png da nova imagem aqui para evitar acessar denovo
+					if(result && (result instanceof Buffer)) {
+						pngBuffer = result;
+					}
+
+					// pode acontecer quando é uma imagem nova, tenta pegar do redis denovo
+					if(!pngBuffer) {
+						response = await handleGetPicureFromRedis();
+						if(response.status === 200) {
+							pngBuffer = response.body;
+						}
+					}
+
+					headers["X-Changes-Offset"] = saver.last_i;
+					headers["X-Changes-Identifier"] = saver.last_identifier;
+				}
+			}
+
+			if(!pngBuffer) { 
+				return res.status(500).json({message: "Erro ao acessar imagem"});
+			}
+			
 			return res
 			.setHeaders(new Map(Object.entries(headers)))
 			.contentType("image/png")
-			.status(200).send(body);
+			.status(200).send(pngBuffer);
 		} else {
 			// 1. Se entre o getChanges acima e a leitura da imagem, for salva uma nova imagem
 			// não causa problemas, pois o cliente irá re-aplicar as mudanças, um re-trabalho

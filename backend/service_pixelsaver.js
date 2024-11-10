@@ -1,6 +1,6 @@
 import { REDIS_ENABLED } from "./src/config/options.js";
 
-import PixelSaver from "./src/service/pixelSaver.js";
+import { PixelSaver } from "./src/service/pixelSaver.js";
 import { connectToRedis } from "./src/config/redisConnection.js";
 import PixelChanges from "./src/controller/pixelChanges.js";
 
@@ -12,8 +12,9 @@ if(!REDIS_ENABLED) {
 let redisClient = await connectToRedis(PixelChanges.getLuaScriptsConfig());
 await PixelChanges.init(redisClient);
 
-const cronTask = await PixelSaver.init();
+const saver = await PixelSaver.init();
+const cronJob = saver.scheduleCron();
 
-if(!cronTask) {
-	console.error("Erro ao inicial o Pixel Saver: Não iniciou a cron task");
+if(!cronJob) {
+	throw new Error("Erro ao iniciar o cronJob");
 }
