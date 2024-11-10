@@ -7,7 +7,11 @@ import PixelChanges from "../src/controller/pixelChanges.js";
 import RedisMock from "../src/controller/redisMock.js";
 
 
-const session = {username: "erick"};
+const session = {
+	username: "teste",
+	name: "Teste",
+	picture: null
+};
 
 // Poderia utilizar o supertest, mas já que o controller é separado chamar ele direto vai dar
 // no exato mesmo comportamento, sem toda a lentidão de ligar o server e esperar requisições

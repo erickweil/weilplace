@@ -13,12 +13,14 @@ services:
       LOG_ROUTES: "true"
       REDIS_ENABLED: "true"
       REDIS_URL: "redis://weilplace-redis:6379"
-      PLACE_DELAY: 1000
+      PLACE_DELAY: 0
       DISABLE_FILESYSTEM: "false"
       PIXEL_SAVER_CALL: "false"
     networks:
       weilplace:
         ipv4_address: 10.5.0.2
+    ports:
+      - "3001:3001"
   weilplace-pixelsaver:
     build:
       context: ./backend
@@ -27,7 +29,7 @@ services:
     container_name: weilplace-pixelsaver
     volumes:
       - weilplace-volume-pixels:/node-app/public/pixels:rw
-    command: ["service_pixelsaver.js"]
+    entrypoint: "npm run saver"
     environment:
       API_URL: "http://weilplace-server:3001"
       PATH_PICTURE: "./public/pixels/picture.png"
@@ -56,22 +58,26 @@ services:
     networks:
       weilplace:
         ipv4_address: 10.5.0.4
+    ports:
+      - "3000:3000"
   weilplace-redis:
     image: redis
     container_name: weilplace-redis
     networks:
       weilplace:
         ipv4_address: 10.5.0.5
-  weilplace-nginx:
-    build:
-      context: .
-      dockerfile: Dockerfile.nginx
-    container_name: weilplace-nginx
     ports:
-      - "3000:80"
-    networks:
-      weilplace:
-        ipv4_address: 10.5.0.6
+      - "6379:6379"
+  # weilplace-nginx:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.nginx
+  #   container_name: weilplace-nginx
+  #   ports:
+  #     - "3000:80"
+  #   networks:
+  #     weilplace:
+  #       ipv4_address: 10.5.0.6
 
 volumes:
   weilplace-volume-pixels:

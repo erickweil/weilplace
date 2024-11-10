@@ -18,7 +18,7 @@ const pixelsViewOptions = {
 };
 
 const _lastPixelPost = {x:-1,y:-1,c:-1};
-export const doPixelPost = async (x,y,c) => {
+export const doPixelPost = async (token, x,y,c) => {
   if(x == _lastPixelPost.x && y == _lastPixelPost.y && c == _lastPixelPost.c) {
     return;
   }
@@ -35,7 +35,10 @@ export const doPixelPost = async (x,y,c) => {
     const res = await fetch(getApiURL("/pixel"),{
       method: "POST",
       body: JSON.stringify({x:x, y:y, c:c}),
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
       credentials: 'include'
     });
     return res.json();
@@ -45,6 +48,7 @@ export const doPixelPost = async (x,y,c) => {
 export default function Home() {
   console.log("Bom dia!");
 
+  const token = undefined;
   const precisaLogin = process.env.NEXT_PUBLIC_REQUIRE_GOOGLE_LOGIN === "true";
 
   // https://nextjs.org/docs/basic-features/data-fetching/client-side
@@ -106,7 +110,7 @@ export default function Home() {
 
   const onPlacePixel = useCallback(async () => {
     try {
-      const resp = await doPixelPost(centerPixelPosRef.current.x, centerPixelPosRef.current.y,colorIndexRef.current);
+      const resp = await doPixelPost(token, centerPixelPosRef.current.x, centerPixelPosRef.current.y,colorIndexRef.current);
       if(!resp) return;
       
       if(resp.delay !== undefined && resp.delay != 0) {

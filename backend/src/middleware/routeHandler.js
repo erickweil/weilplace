@@ -9,7 +9,7 @@ export const genericRouteHandler = (method,route,allowWebSocket,handler) => {
 	return async (req,res) => {
 		try {
 			const body = method == "GET" ? req.query : req.body;
-			const resp = await handler(body,req.session);
+			const resp = await handler(body,req.tokenPayload);
 
 			if(resp === undefined || resp.status === undefined) {
 				console.log("Erro no handler da requisição '"+req.originalUrl+"', retornou resposta inválida:",resp);
@@ -22,7 +22,7 @@ export const genericRouteHandler = (method,route,allowWebSocket,handler) => {
 			return res.status(resp.status).json(resp.json);
 		} catch(e) {
 			console.error("Erro ao processar requisição",e);
-			return res.status(500).json({message: "Erro ao processar requisição:"+e});
+			return res.status(500).json({error: "Erro ao processar requisição:"+e});
 		}
 	};
 };

@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from "ws"; //https://www.npmjs.com/package/ws
-import { SessionManager, haiku } from "../middleware/sessionManager.js";
+import { AuthManager, haiku } from "../middleware/authManager.js";
 import { webSocketHandlers } from "../middleware/routeHandler.js";
 import { setupPublishChanges } from "./wsPublishChanges.js";
 import { LOG_ROUTES } from "../config/options.js";
@@ -46,14 +46,14 @@ const onConnection = (wss,ws) => {
 		}
 
 		// será que precisa pensar em pesquisar esses valores ou algo assim?
-		const session = ws.session;
+		const tokenPayload = ws.tokenPayload;
 
 		if(LOG_ROUTES) {
 			const timestamp = new Date().toISOString();
 			console.log(timestamp+" "+ws.username+" websocket: "+method+" "+route+" ",json);
 		}
 
-		const resp = await handler(json,session);
+		const resp = await handler(json,tokenPayload);
 		if(resp.status == 200) {
 			ws.send(JSON.stringify({
 				[json.post ? "post" : "get"]: route,
@@ -68,7 +68,7 @@ const onConnection = (wss,ws) => {
 	ws.on("message", onMessage);
 };
 
-const initWebSocketServer = (server, sessionParser) => {
+const initWebSocketServer = (server, tokenMiddleware) => {
 	const wss = new WebSocketServer({server});
 
 	wss.on("connection", (ws, req) => {
@@ -85,13 +85,9 @@ const initWebSocketServer = (server, sessionParser) => {
 			console.log(ws.username+" desconectou.");
 		});
 
-		// https://stackoverflow.com/questions/12182651/expressjs-websocket-session-sharing
-        sessionParser(req, {}, function() {
-			// Não
-			// SessionManager.initSession(req, null, () => {});
-			
-			ws.session = req.session;
-			ws.username = req.session?.username || haiku();
+        tokenMiddleware(req, {}, function() {			
+			ws.tokenPayload = req.tokenPayload;
+			ws.username = req.tokenPayload?.username || haiku();
             console.log(ws.username+" conectado.");
 
 			onConnection(wss,ws);

@@ -1,6 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
 import { OAUTH2_CLIENT_ID, REQUIRE_GOOGLE_LOGIN } from "../config/options.js";
-import { SessionManager } from "../middleware/sessionManager.js";
+import { AuthManager } from "../middleware/authManager.js";
 
 // Cria um novo cliente OAuth2 (Cache)
 /** @type {OAuth2Client} */
@@ -11,7 +11,7 @@ client = new OAuth2Client(OAUTH2_CLIENT_ID);
 
 class GoogleLogin {
     // https://developers.google.com/identity/gsi/web/guides/verify-google-id-token#using-a-google-api-client-library
-    static async verify(credential, session) {
+    static async verify(credential) {
         if(!REQUIRE_GOOGLE_LOGIN) {
             throw new Error("Login com Google desativado");
         }
@@ -29,7 +29,7 @@ class GoogleLogin {
 
         console.log("Payload:", JSON.stringify(payload,null,2));
         
-        SessionManager.doLogin(session, payload);
+        return await AuthManager.createToken(payload);
     }
 }
 

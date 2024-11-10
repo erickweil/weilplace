@@ -3,7 +3,7 @@ import path from "path";
 import PixelChanges from "../controller/pixelChanges.js";
 import { DISABLE_FILESYSTEM, PATH_PICTURE, PIXEL_SAVER_CALL, REDIS_ENABLED } from "../config/options.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
-import { SessionManager } from "../middleware/sessionManager.js";
+import { AuthManager } from "../middleware/authManager.js";
 import { palleteJson } from "../config/pallete.js";
 import { PixelSaver } from "../service/pixelSaver.js";
 
@@ -92,14 +92,14 @@ function parseIntBounded(str,min,max) {
  *               $ref: '#/components/schemas/RespostaErro'
  * 
  */
-export const handlePostPixel = async (body,session) => {
+export const handlePostPixel = async (body,tokenPayload) => {
 	if(!isIntStr(body.x) || !isIntStr(body.y) || !isIntStr(body.c)) 
 		return {
 			status: 400,
 			json: {error: "É necessário x e y para posição e c para cor"}
 		};
 
-    const userinfo = SessionManager.requireLoggedInUserInfo(session);
+    const userinfo = AuthManager.requireLoggedInUserInfo(tokenPayload);
     if(!userinfo) {
         return { 
             status: 401, 
@@ -264,7 +264,6 @@ router.get("/changes", async (req,res) => {
 router.post("/pixel", genericRouteHandler("POST","/pixel",true,handlePostPixel));
 router.get("/changes", genericRouteHandler("GET","/changes",true,handleGetChanges));
 router.get("/savedindex", genericRouteHandler("GET","/savedindex",true,handleGetSavedIndex));
-
 
 export const handleGetPicureFromRedis = async () => {
 	let picture = await PixelChanges.getPicture();

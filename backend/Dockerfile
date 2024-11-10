@@ -20,8 +20,4 @@ RUN npm ci
 # Depois copia o projeto (Isto torna mais rápido o build devido ao cache)
 COPY . .
 
-ENTRYPOINT [ "node" ]
-
-# especificar o cmd service_pixelsaver quando for executar o outro.
-# docker run image service_pixelsaver.js
-CMD [ "server.js" ]
+ENTRYPOINT npm start

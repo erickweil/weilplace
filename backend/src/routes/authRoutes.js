@@ -1,6 +1,6 @@
 import express from "express";
 import GoogleLogin from "../controller/googleLogin.js";
-import { SessionManager } from "../middleware/sessionManager.js";
+import { AuthManager } from "../middleware/authManager.js";
 import { genericRouteHandler } from "../middleware/routeHandler.js";
 const router = express.Router();
 
@@ -39,13 +39,13 @@ const router = express.Router();
  */
 router.post("/login", async (req,res) => {
     try {
-        console.log("Login com Google");
-        console.log("Body:",req.body);
-        console.log("Cookies:",req.headers.cookie);
+        const {payload, token} = await GoogleLogin.verify(req.body.credential, req.session);
+        if(!token) throw new Error("Falhou criar token");
 
-        await GoogleLogin.verify(req.body.credential, req.session);
-
-        return res.status(200).json({message: "Logado com sucesso"});
+        res.status(200).json({
+            payload: payload,
+            token: token
+        });
     } catch (error) {
         console.error(error);
         return res.status(500).json({error: "Erro ao logar"+error});
@@ -64,8 +64,8 @@ router.post("/login", async (req,res) => {
  *         description: Usuário logado
  */
 
-export const handleLoginCheck = async (query,session) => {
-    const userinfo = SessionManager.requireLoggedInUserInfo(session);
+export const handleLoginCheck = async (query,tokenPayload) => {
+    const userinfo = AuthManager.requireLoggedInUserInfo(tokenPayload);
     if(!userinfo) {
         return { status: 401, json: {error: "Não logado"} };
     }
