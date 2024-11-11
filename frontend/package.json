@@ -10,11 +10,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "eslint": "8.39.0",
-    "eslint-config-next": "13.3.1",
+    "eslint": "9.14.0",
+    "eslint-config-next": "15.0.3",
     "fetch-cookie": "^2.1.0",
-    "next": "13.3.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "next": "15.0.3",
+    "react": "19.0.0-rc-66855b96-20241106",
+    "react-dom": "19.0.0-rc-66855b96-20241106"
   }
 }

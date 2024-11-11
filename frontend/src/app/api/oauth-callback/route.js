@@ -1,25 +1,32 @@
 import { getApiURL } from "@/config/api";
-import { NextApiRequest, NextApiResponse } from "next";
+import { revalidatePath } from "next/cache";
+import { NextRequest, NextResponse } from "next/server";
 /**
  * 
- * @param {NextApiRequest} req 
- * @param {NextApiResponse} res 
- * @returns 
+ * @param {NextRequest} req 
+ * @returns {Response}
  */
-export default async function handler(req, res) {
+export async function POST(req) {
     console.log(req.method, req.url);
 
     const searchParams = new URLSearchParams(req.url.split('?')[1]);
     searchParams.forEach((value, key) => console.log(`Search Params --> ${key}: ${value}`));
 
-    const body = req.body;
+    // https://github.com/vercel/next.js/discussions/44212
+    
+    const formData = await req.formData();
+    const body = {
+        credential: formData.get("credential"),
+        g_csrf_token: formData.get("g_csrf_token")
+    };
+    
     console.log("Body OAUTH2 -->", body);
 
-    const cookies = req.cookies;
-    console.log("Cookies OAUTH2 -->", cookies);
+    const reqCookies = req.cookies;
+    console.log("Cookies OAUTH2 -->", reqCookies);
 
     if(!body || !body.credential || !body.g_csrf_token) {
-        return res.status(400).json({message: "Credenciais inválidas"});
+        return NextResponse.json({message: "Credenciais inválidas"}, {status: 400});
     }
 
     const fetchRes = await fetch(getApiURL("/login"),{
@@ -38,20 +45,11 @@ export default async function handler(req, res) {
 
     if(fetchRes.status !== 200 || !json || json.error) {
         console.log("Erro ao logar:", json);
-        return res.status(500).json({message: "Erro ao logar"+json.error});
+        return NextResponse.json({message: "Erro ao logar"+json.error}, {status: 500});
     }
 
-    console.log("Logado com sucesso:", json);
-
-    const cookiesLogin = fetchRes.headers.getSetCookie();
-    if(cookiesLogin && cookiesLogin.length > 0) {
-        console.log("Cookies do /login:", cookiesLogin);
-
-        // https://github.com/vercel/next.js/discussions/48434
-        res.setHeader("Set-Cookie", fetchRes.headers.getSetCookie());
-    } else {
-        console.log("Não setou nenhum cookie a mais");
-    }
+    const { token, payload } = json;
+    console.log("Logado com sucesso:", payload);
 
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/303
     /*
@@ -60,5 +58,21 @@ export default async function handler(req, res) {
 
         This response code is often sent back as a result of PUT or POST methods so the client may retrieve a confirmation, or view a representation of a real-world object (see HTTP range-14). The method to retrieve the redirected resource is always GET. 
     */
-    res.redirect(303, "/");
+    //res.redirect(303, "/");
+
+
+    // This will purge the Client-side Router Cache, and revalidate the Data Cache on the next page visit.
+    revalidatePath('/', 'layout');
+
+    // Salva o token no cookie, para ser usado em futuras requisições
+    return NextResponse.redirect(new URL("/", process.env.NEXT_PUBLIC_WEB_URL), {
+        status: 303,
+        headers: {
+            /**
+            https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Headers/Set-Cookie
+            Set-Cookie: <nome-cookie>=<valor-cookie>; Domain=<domain-value>; Secure; HttpOnly
+             */
+            "Set-Cookie": `token=${token}; Path=/; SameSite=Strict; Secure; HttpOnly; Expires=${new Date(payload.exp * 1000).toUTCString()}`
+        }
+    });
 }

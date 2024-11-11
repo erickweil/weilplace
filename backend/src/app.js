@@ -105,14 +105,13 @@ const sessionParser = session(sessionOptions);
 app.use(sessionParser);
 */
 
-const tokenMiddleware = AuthManager.tokenMiddleware(false);
-app.use(tokenMiddleware);
+app.use(AuthManager.tokenMiddleware(false));
 // Não. só vai ter sessão se estiver logado
 // app.use(SessionManager.initSession);
 
 // Websockets
 if(WEBSOCKET_ENABLED) {
-	const wss = initWebSocketServer(server, tokenMiddleware);
+	const wss = initWebSocketServer(server, AuthManager.tokenMiddleware(false, true));
 }
 
 // Passando para o arquivo de rotas o app, que envia junto uma instância do express

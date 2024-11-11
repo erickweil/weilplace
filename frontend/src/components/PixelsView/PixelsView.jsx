@@ -26,7 +26,7 @@ export const arraysEqual = (a, b) => {
 
 const PixelsView = (props) => {
 
-	const { pallete, notifyCenterPixel, onChangeColor, onPlacePixel, historyPictureUrl, options:_options, ...rest } = props
+	const { pallete, notifyCenterPixel, onChangeColor, onPlacePixel, historyPictureUrl, token, options:_options, ...rest } = props
 
     const defaultOptions = {
 		spanButton: "any", // left | middle | right | any
@@ -157,11 +157,12 @@ const PixelsView = (props) => {
 			pallete: pallete,
 			centerPixel: {x:0,y:0},
 			targetPixel: false,
-			enterPressionado: false
+			enterPressionado: false,
+			token: token
 		});
 
 		if(!estado.historyMode) {
-			const socket = getSocketInstance();
+			const socket = getSocketInstance(estado.token);
 			if(socket !== null)
 			registerWebSocketListeners(socket,estado);
 		}
@@ -184,7 +185,7 @@ const PixelsView = (props) => {
 		//}
 
 		if(!estado.historyMode) {
-			const socket = getSocketInstance();
+			const socket = getSocketInstance(estado.token);
 			if(socket !== null)
 			registerWebSocketListeners(socket,estado);
 		}

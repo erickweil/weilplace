@@ -72,26 +72,53 @@ const initWebSocketServer = (server, tokenMiddleware) => {
 	const wss = new WebSocketServer({server});
 
 	wss.on("connection", (ws, req) => {
-		ws.isAlive = true;
-
-		ws.on("error",(error) => {
-			console.log("Erro em:"+ws.username,error);
-		});
-		ws.on("pong", () => {
-			//console.log("Recebeu pong de "+ws.session.username);
+		try {
 			ws.isAlive = true;
-		});
-		ws.on("close", () => {
-			console.log(ws.username+" desconectou.");
-		});
 
-        tokenMiddleware(req, {}, function() {			
-			ws.tokenPayload = req.tokenPayload;
-			ws.username = req.tokenPayload?.username || haiku();
-            console.log(ws.username+" conectado.");
+			ws.on("error",(error) => {
+				console.log("Erro em:"+ws.username,error);
+			});
+			ws.on("pong", () => {
+				//console.log("Recebeu pong de "+ws.session.username);
+				ws.isAlive = true;
+			});
+			ws.on("close", () => {
+				console.log(ws.username+" desconectou.");
+			});
 
-			onConnection(wss,ws);
-        });
+			const mockRes = {
+				status: (code) => {
+					mockRes.code = code;
+					return mockRes;
+				},
+				json: (obj) => {
+					throw new Error(JSON.stringify(obj));
+				}
+			};
+
+			tokenMiddleware(req, mockRes, function() {			
+				ws.tokenPayload = req.tokenPayload;
+				ws.username = req.tokenPayload?.name || haiku();
+				console.log(ws.username+" conectado.");
+
+				onConnection(wss,ws);
+			}).catch((error) => {
+				console.error("Erro ao autenticar websocket:",error);
+				try {
+					ws.close();
+				} catch(ee) {
+					console.error("Erro ao fechar websocket:",ee);
+				}
+			});
+		} catch(e) {
+			console.error("Erro ao conectar websockets:",e);
+
+			try {
+				ws.close();
+			} catch(ee) {
+				console.error("Erro ao fechar websocket:",ee);
+			}
+		}
 	});
 
 	// Ping https://www.npmjs.com/package/ws#how-to-detect-and-close-broken-connections

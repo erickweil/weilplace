@@ -117,7 +117,7 @@ export const doFetchHistoryPicture = (estado,centralizar) => {
 export const doFetchChanges = (estado,force) => {		
     estado.changesTerminouFetch = false;
 
-    const webSocket = getSocketInstance();
+    const webSocket = getSocketInstance(estado.token);
     if(webSocket !== null) {
         //console.log("Tem websocket!!!");
 
@@ -247,7 +247,7 @@ export const registerWebSocketListeners = (webSocket,estado) => {
 }
 
 export const removeWebSocketListeners = (estado) => {
-    const webSocket = getSocketInstance();
+    const webSocket = getSocketInstance(estado.token);
     if(webSocket !== null) {
         removeWebSocketListener("POST","/publishchanges",estado.publishChangesListener);
         removeWebSocketListener("GET","/changes",estado.fetchChangesListener);

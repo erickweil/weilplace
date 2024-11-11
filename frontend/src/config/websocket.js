@@ -5,6 +5,7 @@ const isBrowser = typeof window !== "undefined";
 let useWebSocket = isBrowser && process.env.NEXT_PUBLIC_WEBSOCKET_ENABLED === "true";
 let socket = null;
 let socketConnected = false;
+let socketAuthenticated = false; // usou ou não token?
 
 // Desativado o heartbeat pq o evento de ping não está funcionando no nextJS
 // https://www.npmjs.com/package/ws#how-to-detect-and-close-broken-connections
@@ -96,19 +97,34 @@ export const requestWebSocket = async (webSocket,metodo,rota,reqJson) => {
 //};
 
 let connectionErrorCount = 0;
-export const getSocketInstance = () => {
+export const getSocketInstance = (token) => {
 	if(!useWebSocket) return null;
 
 	if(socket !== null) {
-		if(!socketConnected) return null;
-		else return socket;
+		if(token && !socketAuthenticated) {
+			console.log("Desconectando socket para criar novo autenticado...");
+			socket.close();
+			socket = null;
+			socketAuthenticated = false;
+			socketConnected = false;
+		} else {
+			if(!socketConnected) return null;
+			else return socket;
+		}
 	}
 
-    const websocket_url = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
-
+    const websocket_url = new URL(process.env.NEXT_PUBLIC_WEBSOCKET_URL);
 	try {
 		console.log("Criando nova conexão websocket...");
 		socketConnected = false;
+		if(token) {
+			// https://stackoverflow.com/questions/4361173/http-headers-in-websockets-client-api
+			websocket_url.searchParams.append("token",token);
+			socketAuthenticated = true;
+		} else {
+			socketAuthenticated = false;
+		}
+
 		socket = new WebSocket(
 			websocket_url
 		);
@@ -146,6 +162,8 @@ export const getSocketInstance = () => {
 			console.error("Desistiu de tentar conectar por websocket");
 			useWebSocket = false; // Para de tentar conectar deu erro 5 vezes!
 		}
+
+		socketAuthenticated = false;
 		socketConnected = false;
 		socket = null;
 	});

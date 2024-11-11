@@ -9,8 +9,7 @@ import RedisMock from "../src/controller/redisMock.js";
 
 const session = {
 	username: "teste",
-	name: "Teste",
-	picture: null
+	name: "Teste"
 };
 
 // Poderia utilizar o supertest, mas já que o controller é separado chamar ele direto vai dar

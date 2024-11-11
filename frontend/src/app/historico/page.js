@@ -1,3 +1,5 @@
+"use client";
+
 import Head from 'next/head'
 import styles from '@/styles/Pixels.module.css'
 import NonSSRWrapper from '@/components/no-ssr-wrapper'

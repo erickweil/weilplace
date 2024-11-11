@@ -47,10 +47,16 @@ export class AuthManager {
         }
     }
 
-    static tokenMiddleware(exigirLogin = true) {
+    static tokenMiddleware(exigirLogin = true, webSockets = false) {
         return async (req, res, next) => {
             try {
-                const auth = req.headers.authorization;
+                let auth;
+                if(webSockets) { // usado para testes e para quando é websockets apenas
+                    let url = new URL(`http://localhost${req.url}`);
+                    auth = url.searchParams.has("token") ? `Bearer ${url.searchParams.get("token")}` : undefined;
+                } else {
+                    auth = req.headers.authorization;
+                }
         
                 if (!auth) {
                     // Se essa rota não EXIGE que seja feito login, não tem problema...
@@ -122,21 +128,26 @@ export class AuthManager {
         // An identifier for the user, unique among all Google accounts and never reused. A Google account can have multiple email addresses at different points in time, but the sub value is never changed. Use sub within your application as the unique-identifier key for the user. Maximum length of 255 case-sensitive ASCII characters.
         //session.username = userinfo.sub;
         //session.save();
-        const tokenPayload = {
-            username: userinfo.sub,
-            name: userinfo.name,
-            picture: userinfo.picture,
-        };
+        const token = await promisify(jwt.sign)(
+            {
+                username: userinfo.sub,
+                name: userinfo.name
+            },
+            SESSION_SECRET,
+            {
+                expiresIn: SESSION_MAX_AGE // expressed in seconds or a string describing a time span
+            }
+        );
+
+        // Para retornar o tempo de expiração
+        const {decoded, error} = await AuthManager._decodeJWTToken(token);
+        if (error) {
+            throw new Error(error);
+        }
 
         return {
-            payload: tokenPayload, 
-            token: await promisify(jwt.sign)(
-                tokenPayload,
-                SESSION_SECRET,
-                {
-                    expiresIn: SESSION_MAX_AGE // expressed in seconds or a string describing a time span
-                }
-            )
+            token: token, 
+            payload: decoded
         };
     }
 
@@ -150,8 +161,7 @@ export class AuthManager {
         } else {
             return { 
                 username: "anonimo",
-                name: "Anônimo",
-                picture: null
+                name: "Anônimo"
             };
         }
     }
